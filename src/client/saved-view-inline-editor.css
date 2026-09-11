@@ -1,0 +1,118 @@
+.saved-view-inline-editor {
+  margin: 0 9px 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  overflow: visible;
+  flex: none;
+}
+.saved-view-inline-main {
+  min-height: 90px;
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 12px;
+}
+.saved-view-inline-main > .entity-icon-trigger {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.saved-view-inline-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 180px;
+  flex: 1;
+}
+.saved-view-inline-copy input {
+  width: min(560px, 100%);
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  outline: 0;
+  padding: 2px 0;
+  font: inherit;
+}
+.saved-view-inline-copy input[aria-label="Title"] {
+  font-size: 0.8125rem;
+  font-weight: 550;
+}
+.saved-view-inline-copy input[aria-label="Description"] {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.saved-view-inline-copy input::placeholder {
+  color: var(--muted);
+}
+.saved-view-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 1px;
+  font-size: 0.75rem;
+}
+.saved-view-inline-actions label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+}
+.saved-view-inline-actions select {
+  height: 25px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--hover);
+  color: var(--text);
+  padding: 0 22px 0 9px;
+  font-size: 0.6875rem;
+}
+.saved-view-inline-actions .button {
+  height: 26px;
+  min-height: 26px;
+  padding: 0 9px;
+  font-size: 0.6875rem;
+}
+.saved-view-inline-tools {
+  height: 44px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+}
+.saved-view-inline-tools button {
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 11px;
+  font-size: 0.6875rem;
+}
+.saved-view-inline-tools button:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.saved-view-inline-editor > .error-text {
+  margin: 0 12px 8px;
+}
+.editing-saved-view > .view-toolbar > :not(.page-tabs):not(.spacer) {
+  opacity: 0;
+  pointer-events: none;
+}
+@media (max-width: 760px) {
+  .saved-view-inline-editor {
+    margin-top: 8px;
+  }
+  .saved-view-inline-main {
+    flex-wrap: wrap;
+  }
+  .saved-view-inline-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

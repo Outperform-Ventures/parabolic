@@ -1,0 +1,6 @@
+.editor-media-embed{display:block;max-width:100%;margin:16px 0;overflow:hidden;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+.editor-media-embed iframe{display:block;aspect-ratio:16/9;width:100%;border:0;background:#101113}
+.editor-media-actions{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:12px;color:var(--muted)}
+.editor-media-actions button{background:none;border:0;color:var(--text-secondary);font:inherit;cursor:pointer;padding:2px 0}
+.editor-media-actions button:hover{text-decoration:underline}
+.editor-media-embed>a{display:block;padding:8px 12px;font-size:12px}

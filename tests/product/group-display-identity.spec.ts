@@ -1,0 +1,12 @@
+import {test,expect} from '@playwright/test';import {createApp} from '../../src/server/app';import {resolve} from 'node:path';
+test('project columns and grouping follow renamed group IDs and migrate old local display names',async({page})=>{
+ const app=createApp({databasePath:':memory:',port:0,staticDir:resolve('dist')}),{url}=await app.start();try{
+ await page.request.post(url+'/auth/setup',{data:{name:'Stable groups',email:'stable-groups@example.test',password:'label-password'}});const create=async(kind:string,data:any)=>{const r=await page.request.post(url+'/api/v1/'+kind,{data});expect(r.ok()).toBeTruthy();return r.json()};
+ const label=await create('labels',{name:'Small',entityType:'projects',group:'Size'}),project=await create('projects',{name:'Group identity',labelIds:[label.id]}),field='labelGroupId:'+label.labelGroupId;
+ await page.goto(url+'/projects');const open=()=>page.getByRole('button',{name:'Project display options',exact:true}).click();await open();await page.getByRole('checkbox',{name:'Size',exact:true}).check();await page.getByLabel('Project grouping',{exact:true}).selectOption(field);await page.keyboard.press('Escape');
+ const cell=page.locator('[data-project-row="'+project.id+'"] [data-project-column="'+field+'"]');await expect(cell).toContainText('Small');await page.getByRole('columnheader',{name:'Size',exact:true}).getByRole('button').click();
+ expect((await page.request.patch(url+'/api/v1/labelGroups/'+label.labelGroupId,{data:{name:'Scale'}})).ok()).toBeTruthy();await expect(page.getByRole('columnheader',{name:'Scale',exact:true})).toBeVisible();await expect(cell).toContainText('Small');await page.reload();await expect(cell).toContainText('Small');await open();await expect(page.getByLabel('Project grouping',{exact:true})).toHaveValue(field);await page.keyboard.press('Escape');
+ await page.evaluate(()=>{for(const key of Object.keys(localStorage).filter(key=>key.startsWith('project-display:'))){const value=JSON.parse(localStorage.getItem(key)!);localStorage.setItem(key,JSON.stringify({...value,columns:['labelGroup:Size'],group:'labelGroup:Size',sort:'labelGroup:Size'}))}});await page.reload();await expect(cell).toContainText('Small');await expect(page.getByRole('columnheader',{name:'Scale',exact:true})).toBeVisible();
+ await expect.poll(()=>page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('project-display:')).some(k=>localStorage.getItem(k)!.includes('labelGroup:Size')))).toBe(false);
+ }finally{await page.close();await app.close()}
+});

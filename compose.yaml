@@ -1,0 +1,14 @@
+services:
+  parabolic:
+    build: .
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4174:4174"
+    environment:
+      PARABOLIC_PUBLIC_URL: ${PARABOLIC_PUBLIC_URL:-http://localhost:4174}
+      PARABOLIC_ALLOWED_ORIGINS: ${PARABOLIC_PUBLIC_URL:-http://localhost:4174}
+    volumes:
+      - parabolic-data:/data
+volumes:
+  parabolic-data:

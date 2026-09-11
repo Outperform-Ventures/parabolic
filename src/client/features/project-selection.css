@@ -1,0 +1,15 @@
+.project-collection{position:relative}
+.project-selection-bar{position:absolute;z-index:15;bottom:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 8px 6px 14px;border:1px solid var(--border);border-radius:8px;background:var(--panel);box-shadow:var(--shadow);font-size:.8125rem;color:var(--text)}
+.project-selection-search{width:100%;padding:10px;border:0;border-bottom:1px solid var(--border);background:transparent;color:var(--text);font-size:.8125rem;outline:none}
+.project-selection-checkbox{appearance:none;width:14px;height:14px;position:absolute;left:24px;top:50%;transform:translateY(-50%);margin:0;border:1px solid var(--muted);border-radius:3px;background:transparent;opacity:0;cursor:default}
+.project-selection-checkbox:checked{opacity:1;background:var(--accent);border-color:var(--accent)}
+.project-selection-checkbox:checked:after{content:'✓';display:block;color:white;font-size:11px;line-height:12px;text-align:center}
+.project-selection-checkbox:focus-visible{outline:2px solid var(--accent);outline-offset:3px;opacity:1}
+.feature-project-table td:first-child{position:relative}
+.feature-project-table tr:hover .project-selection-checkbox,.feature-project-table tr:focus-within .project-selection-checkbox,.project-collection.has-project-selection .project-selection-checkbox{opacity:1}
+.project-collection-contextual .feature-project-table tr[aria-selected=true]>td{background:var(--selected)}
+.project-collection-contextual .feature-project-table tr.focused:not([aria-selected=true])>td{background:var(--hover)}
+.project-collection .feature-board-card{position:relative}
+.project-collection .feature-board-card>.project-selection-checkbox{left:auto;right:10px;top:18px}
+.feature-board-card:hover>.project-selection-checkbox,.feature-board-card:focus-within>.project-selection-checkbox{opacity:1}
+.project-collection .feature-board-card.selected{outline:1px solid var(--accent);background:var(--selected)}

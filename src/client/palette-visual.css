@@ -1,0 +1,12 @@
+/* CmdK only: native capture batch001; other quick-open dialogs retain their layout. */
+.workspace-command-palette>.command-input{height:46px;min-height:46px;border-bottom:0;padding:0 18px}
+.workspace-command-palette>.command-input input{font-size:13px}
+.workspace-command-palette>.command-input>.icon{display:none}
+.workspace-command-palette>.command-results{padding:4px 6px}
+.workspace-command-palette>.command-results>.menu-label{height:30px;display:flex;align-items:center;padding:0 12px;font-size:13px;font-weight:450;color:var(--muted)}
+.workspace-command-palette>.command-results>.menu-label:first-child{height:34px}
+.workspace-command-palette>.command-results>.menu-item{height:44px;margin-bottom:2px;padding:0 12px;gap:10px;border-radius:8px}
+.workspace-command-palette .menu-item.selected{background:var(--selected)}
+.workspace-command-palette .palette-keycaps{display:flex;align-items:center;justify-content:flex-end;gap:4px;flex:none!important;overflow:visible!important;color:var(--muted)}
+.workspace-command-palette .palette-keycaps kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:24px;border:1px solid var(--border);border-radius:3px;margin:0;padding:0 4px;font-size:12px;font-weight:400;line-height:normal}
+.workspace-command-palette .palette-key-separator{font-size:12px}

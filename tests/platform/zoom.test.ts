@@ -1,0 +1,2 @@
+import test from'node:test';import assert from'node:assert/strict';import{nextZoomFactor}from'../../src/desktop/zoom';
+test('native zoom follows browser percentages, snaps tiny drift, and clamps endpoints',()=>{assert.equal(nextZoomFactor(1,1),1.1);assert.equal(nextZoomFactor(1.1,1),1.25);assert.equal(nextZoomFactor(1.25,-1),1.1);assert.equal(nextZoomFactor(1,-1),.9);assert.equal(nextZoomFactor(1.007,1),1.1);assert.equal(nextZoomFactor(.98,1),1);assert.equal(nextZoomFactor(1.3,-1),1.25);assert.equal(nextZoomFactor(5,1),5);assert.equal(nextZoomFactor(.25,-1),.25);});

@@ -1,0 +1,55 @@
+import {test,expect} from '@playwright/test';
+import {createApp} from '../../src/server/app';
+import {resolve} from 'node:path';
+
+test('T targets hovered or keyboard-focused list headers, including collapsed groups and nested subgroups',async({page})=>{
+ const app=createApp({databasePath:':memory:',port:0,staticDir:resolve('dist')});
+ const {url}=await app.start();
+ try{
+  await page.setViewportSize({width:1777,height:991});
+  await page.request.post(`${url}/auth/setup`,{data:{name:'Group shortcut QA',email:'group-shortcut@example.test',password:'isolated-group-shortcut',workspaceName:'Group shortcut'}});
+  const initial=await (await page.request.get(`${url}/api/v1/state`)).json();
+  const team=initial.teams[0],user=initial.user;
+  const create=async(data:any)=>(await page.request.post(`${url}/api/v1/issues`,{data:{teamId:team.id,...data}})).json();
+  const urgent=await create({title:'Urgent owned issue',priority:1,assigneeId:user.id});
+  const unassigned=await create({title:'Urgent unassigned issue',priority:1});
+  const high=await create({title:'Previously focused high issue',priority:2});
+  await page.goto(`${url}/team/${team.id}/all`);
+  await page.getByRole('button',{name:'Display options',exact:true}).click();
+  await page.getByLabel('Grouping',{exact:true}).selectOption('priority');
+  await page.keyboard.press('Escape');
+  const row=(id:string)=>page.locator(`[data-testid="issue-row"][data-issue-id="${id}"]`);
+  const header=page.locator('.virtual-issue-list .group-header[data-group-field="priority"][data-group-id="1"]');
+  const toggle=header.locator('.group-toggle');
+  await row(high.id).hover();
+  await header.hover();
+  await page.keyboard.press('t');
+  await expect(toggle).toHaveAttribute('aria-expanded','false');
+  await expect(row(urgent.id)).toHaveCount(0);
+  await expect(row(high.id)).toBeVisible();
+  await header.hover();
+  await page.keyboard.press('t');
+  await expect(toggle).toHaveAttribute('aria-expanded','true');
+  await expect(row(urgent.id)).toBeVisible();
+  await toggle.click();
+  await page.mouse.move(1000,65);
+  await toggle.focus();
+  await page.keyboard.press('t');
+  await expect(toggle).toHaveAttribute('aria-expanded','true');
+  await page.getByRole('button',{name:'Display options',exact:true}).click();
+  await page.getByLabel('Sub-grouping',{exact:true}).selectOption('assigneeId');
+  await page.keyboard.press('Escape');
+  const subgroup=page.locator(`.issue-subgroup-header[data-group-key][data-group-id="${user.id}"]`);
+  const subToggle=subgroup.locator('.group-toggle');
+  await row(high.id).hover();
+  await subgroup.hover();
+  await page.keyboard.press('t');
+  await expect(subToggle).toHaveAttribute('aria-expanded','false');
+  await expect(row(urgent.id)).toHaveCount(0);
+  await expect(row(unassigned.id)).toBeVisible();
+  await subgroup.hover();
+  await page.keyboard.press('t');
+  await expect(subToggle).toHaveAttribute('aria-expanded','true');
+  await expect(row(urgent.id)).toBeVisible();
+ }finally{await page.close();await app.close();}
+});

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#25262b"/>
+      <stop offset="1" stop-color="#101114"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#4b4d55"/>
+      <stop offset="1" stop-color="#17181c"/>
+    </linearGradient>
+    <clipPath id="disc"><circle cx="512" cy="506" r="291"/></clipPath>
+    <pattern id="stripes" width="44" height="44" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+      <rect width="27" height="44" fill="#f2f3f5"/>
+    </pattern>
+  </defs>
+  <rect x="52" y="48" width="920" height="920" rx="210" fill="url(#surface)" stroke="url(#rim)" stroke-width="3"/>
+  <g clip-path="url(#disc)">
+    <rect x="200" y="190" width="624" height="634" fill="url(#stripes)"/>
+    <path d="M 183 181 H 842 V 716 Z" fill="#f2f3f5"/>
+  </g>
+</svg>

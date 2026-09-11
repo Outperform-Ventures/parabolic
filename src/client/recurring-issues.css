@@ -1,0 +1,4 @@
+.recurrence-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px;color:var(--text-secondary)}
+.recurrence-controls .date-control{width:104px;flex:none}.recurrence-controls .recurrence-interval{width:56px}.recurrence-controls .recurrence-unit{width:90px}
+@media(max-width:600px){.recurrence-controls{row-gap:16px}}
+.recurrence-controls .date-control>.input{width:100%;padding:6px 8px}

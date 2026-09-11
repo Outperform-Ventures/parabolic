@@ -1,0 +1,105 @@
+.favorite-section-heading {
+  justify-content: space-between;
+}
+.favorite-section-heading > button:first-child {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: inherit;
+  font: inherit;
+  flex: 1;
+  text-align: left;
+}
+.favorite-section-heading > .icon-button {
+  opacity: 0;
+}
+.favorites-section:hover .favorite-section-heading > .icon-button,
+.favorite-section-heading:focus-within > .icon-button {
+  opacity: 1;
+}
+.favorite-folder-heading {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  position: relative;
+}
+.favorite-folder-heading > .sidebar-link {
+  flex: 1;
+  min-width: 0;
+  gap: 5px;
+  padding-left: 4px;
+  text-align: left;
+}
+.favorite-folder-heading > .sidebar-link > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.favorite-folder-children {
+  margin-left: 14px;
+  padding-left: 2px;
+  border-left: 1px solid var(--border);
+}
+.favorite-folder-empty {
+  padding: 5px 12px 8px;
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+.favorite-actions {
+  width: 22px;
+  height: 24px;
+  opacity: 0;
+}
+.favorite-row:hover .favorite-actions,
+.favorite-row:focus-within .favorite-actions,
+.favorite-folder-heading:hover .favorite-actions,
+.favorite-folder-heading:focus-within .favorite-actions {
+  opacity: 1;
+}
+.organized-favorite {
+  align-items: center;
+}
+.organized-favorite > .sidebar-link {
+  padding-right: 4px;
+}
+.organized-favorite > .favorite-remove {
+  position: static;
+  width: 20px;
+  min-width: 20px;
+  height: 24px;
+  background: transparent;
+}
+.organized-favorite:focus-within .favorite-remove {
+  opacity: 1;
+}
+.favorite-folder-editor {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 29px;
+  padding: 2px 10px;
+  color: var(--muted);
+}
+.favorite-folder-editor input {
+  width: 100%;
+  min-width: 0;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 5px;
+  font-size: 0.75rem;
+  outline-offset: 1px;
+}
+.favorite-drop-before {
+  box-shadow: 0 -2px 0 var(--accent);
+}
+.favorite-drop-folder {
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+  border-radius: 5px;
+}
+.favorite-error {
+  padding: 5px 10px;
+  font-size: 0.6875rem;
+  color: var(--danger);
+}

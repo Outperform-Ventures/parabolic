@@ -1,0 +1,9 @@
+import {CustomerEditorChevron} from './customer-editor-icons';
+import React from'react';
+import{Avatar,Dropdown,Icon}from'./components/ui';
+import{IssueActionFilter}from'./issue-action-filter';
+import{useAppStore}from'./store';
+export function CustomerOwnerSelect({value,onChange}:{value:string;onChange:(id:string)=>void}){
+ const store=useAppStore(),users=store.data.users.filter(u=>!u.deletedAt).sort((a,b)=>a.id===store.user?.id?-1:b.id===store.user?.id?1:a.name.localeCompare(b.name)),selected=store.data.users.find(u=>u.id===value);
+ return <Dropdown className="customer-owner-select" trigger={<button type="button" className="customer-owner-trigger" aria-label="Change customer owner"><Avatar user={selected} size={16}/><span>{selected?.name??'No owner'}</span><CustomerEditorChevron/></button>}><div className="customer-owner-options" onKeyDownCapture={e=>{if((e.key==='0'||e.key==='1')&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.nativeEvent.isComposing&&!e.currentTarget.querySelector<HTMLInputElement>('input')?.value){const id=e.key==='0'?'none':store.user?.id;const choice=Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('[data-action-value]')).find(b=>b.dataset.actionValue===id);if(choice){e.preventDefault();e.stopPropagation();choice.click()}}}}><IssueActionFilter compact searchLabel="Change customer owner…" placeholder="Change customer owner…" initialSelection={value||'none'}><button type="button" role="menuitem" className="menu-item" data-action-value="none" onClick={()=>onChange('')}><Avatar size={16}/><span>No owner</span>{!value&&<Icon name="Check" size={14}/>}<kbd>0</kbd></button>{users.map(user=><button type="button" role="menuitem" className="menu-item" data-action-value={user.id} key={user.id} onClick={()=>onChange(user.id)}><Avatar user={user} size={16}/><span>{user.name}</span>{value===user.id&&<Icon name="Check" size={14}/>}<kbd>{user.id===store.user?.id?'1':''}</kbd></button>)}</IssueActionFilter></div></Dropdown>;
+}

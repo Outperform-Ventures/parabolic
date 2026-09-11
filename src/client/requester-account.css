@@ -1,0 +1,12 @@
+.requester-account{min-height:100dvh;display:grid;place-items:center;padding:32px 20px;background:var(--bg);color:var(--text)}
+.requester-account-card{width:100%;max-width:420px;padding:32px;border:1px solid var(--border);border-radius:12px;background:var(--panel)}
+.requester-account-brand{color:var(--muted);font-size:13px;margin-bottom:28px}
+.requester-account h1{font-size:24px;line-height:32px;letter-spacing:-.5px;margin:0 0 12px;font-weight:600}
+.requester-account h2{font-size:15px;font-weight:500;margin:0}
+.requester-account-card>p{font-size:14px;line-height:22px;margin:0 0 20px;color:var(--muted);overflow-wrap:anywhere}
+.requester-account form{display:grid;gap:18px;margin:24px 0}
+.requester-account label{display:grid;gap:8px;font-size:13px}
+.requester-account input{width:100%;min-height:36px}
+.requester-account [role=alert]{color:var(--red,#eb5757);margin:0}
+.requester-account .button{min-height:34px}
+.requester-site{align-items:start}.requester-site .requester-account-card{max-width:680px}.requester-nav{display:flex;align-items:center;gap:18px;margin-bottom:28px}.requester-nav .button{margin-left:auto}.requester-page-list{display:grid;gap:12px}.requester-page-list>a{display:grid;gap:6px;padding:18px;border:1px solid var(--border);border-radius:8px}.requester-page-list span{color:var(--muted);font-size:13px}.requester-form .requester-field{display:grid;gap:8px}.requester-form .rich-editor:not(.readonly){min-height:72px}.requester-form label.requester-check{display:flex;align-items:center;gap:8px}.requester-form input[type=checkbox]{width:16px;min-height:16px}.requester-form .requester-field>input[type=checkbox]{justify-self:start}

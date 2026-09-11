@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {columnLabelGroup,labelGroupColumn,migrateProjectDisplayGroups} from '../../src/shared/project-display-groups';import type {Entity} from '../../src/shared/types';
+test('project displays migrate legacy names once and resolve stable group identity through renames and deletion',()=>{
+ const group={id:'g',entityType:'projects',name:'Size',previousNames:[]} as unknown as Entity,old={group:'labelGroup:Size',sort:'labelGroup:Size',columns:['status','labelGroup:Size']},stable=migrateProjectDisplayGroups(old,[group]);assert.deepEqual(stable,{group:'labelGroupId:g',sort:'labelGroupId:g',columns:['status','labelGroupId:g']});assert.equal(migrateProjectDisplayGroups(stable,[group]),stable);
+ const renamed={...group,name:'Scale',previousNames:['Size']};assert.equal(columnLabelGroup(stable.group,[renamed]),'Scale');assert.equal(labelGroupColumn('Scale',[renamed]),'labelGroupId:g');assert.deepEqual(migrateProjectDisplayGroups(old,[renamed]),stable);
+ assert.deepEqual(migrateProjectDisplayGroups(stable,[{...renamed,deletedAt:'today'}]),{group:'none',sort:'name',columns:['status']});assert.equal(columnLabelGroup('labelGroup:%broken'),null);assert.equal(migrateProjectDisplayGroups(old,[]),old);
+});

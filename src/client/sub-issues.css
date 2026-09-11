@@ -1,0 +1,109 @@
+.sub-issues-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.sub-issues-heading > .text-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sub-issues-heading strong {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+.sub-issues-heading .muted {
+  font-size: 0.75rem;
+}
+.sub-issue-display-menu {
+  width: 258px;
+  padding: 8px;
+}
+.sub-issue-display-menu h4 {
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin: 6px 4px;
+  color: var(--muted);
+}
+.sub-issue-display-menu label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  font-size: 0.75rem;
+}
+.sub-issue-display-menu label:first-of-type {
+  justify-content: space-between;
+}
+.sub-issue-display-menu select {
+  width: 140px;
+  height: 28px;
+}
+.sub-issues-scroll {
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.sub-issues-configurable .sub-issue-row {
+  box-sizing: border-box;
+  padding: 0 6px;
+  gap: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.sub-issues-configurable .sub-issue-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 0 1 auto;
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+.sub-issue-row .property-button {
+  padding: 2px;
+  min-width: 20px;
+  justify-content: center;
+}
+.sub-issue-row.dragging {
+  opacity: 0.35;
+}
+.sub-issue-row:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.sub-issue-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  color: var(--muted);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sub-issue-closed {
+  color: var(--muted);
+}
+.sub-issue-actions {
+  opacity: 0;
+}
+.sub-issue-row:hover .sub-issue-actions,
+.sub-issue-row:focus-within .sub-issue-actions {
+  opacity: 1;
+}
+.sub-issues-hidden {
+  padding: 8px;
+  font-size: 0.75rem;
+}
+.sub-issues-configurable .issue-identifier {
+  font-size: 0.6875rem;
+  min-width: 56px;
+}
+.sub-issues-configurable .sub-issue-row .avatar {
+  width: 18px;
+  height: 18px;
+  font-size: 9px;
+}

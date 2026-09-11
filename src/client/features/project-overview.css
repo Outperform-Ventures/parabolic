@@ -1,0 +1,87 @@
+.project-detail-page {
+  container-type: inline-size;
+  container-name: project-detail;
+  position: relative;
+}
+.project-detail-page>.project-detail-header{height:44px;min-height:44px;padding:0 19px;gap:9px}
+.project-detail-header>.feature-heading{gap:5px;color:var(--text)}
+.project-detail-header>.spacer{flex:1}
+.project-detail-header>.icon-button,.project-detail-header .project-actions .feature-icon-button{width:28px;height:28px;color:var(--muted)}
+.project-detail-header>.feature-button{width:28px;height:28px;min-height:28px;padding:0;border:0;background:transparent;box-shadow:none;font-size:0}
+.project-detail-header>.feature-button:hover{background:var(--panel);border:0}
+.project-detail-page>.feature-tabs{height:43px;padding:8px;gap:4px}
+.project-issue-view-tabs>a{background:transparent;border:0;border-radius:15px;padding:4px 11px;color:var(--f-muted);font-size:0.75rem;line-height:19px;white-space:nowrap}
+.project-issue-view-tabs>a:hover{color:var(--f-text);background:var(--f-panel)}
+.project-issue-view-tabs>a.active{color:var(--f-text);background:var(--f-hover)}
+
+/* Scale the overview within its available panel, including a collapsed sidebar.
+   At the 1777px reference window: ~160px title inset and a 388px details column. */
+.project-overview-layout {
+  --project-title-inset: clamp(24px, calc(15.5cqi - 76px), 159px);
+  grid-template-columns: minmax(0, 1fr) clamp(260px, calc(17.7cqi + 118.4px), 388px);
+  gap: clamp(24px, calc(17.7cqi - 153.6px), 116px);
+  padding: 0 8px 70px 0;
+}
+
+.project-overview-layout > .feature-project-main {
+  max-width: none;
+  padding: 64px 32px 0 var(--project-title-inset);
+}
+.project-overview-layout .feature-project-icon{width:36px;height:36px}
+.project-overview-layout .feature-project-icon>.entity-icon-trigger{width:36px;height:36px;padding:6px}
+.project-overview-layout .feature-summary-input{margin-bottom:16.5px}
+.project-sidebar-dates{display:flex;align-items:center;gap:4px;min-width:0}
+.project-sidebar-dates .project-inline-trigger{min-width:0;width:auto}
+.project-overview-inline-properties{flex-wrap:wrap;gap:4px;margin:0 0 12px}
+.project-overview-properties-label{display:flex;align-items:center;width:79px;height:28px;flex:0 0 79px;color:var(--f-muted);font-size:13px;font-weight:500;line-height:normal}
+.project-overview-inline-properties>.feature-property{display:flex;gap:0;margin:0;min-height:28px;width:auto}
+.project-overview-inline-properties>.feature-property>span:first-child{display:none}
+.project-overview-inline-properties .feature-property button{width:auto;min-width:0}
+.project-overview-inline-properties>.feature-property:nth-of-type(1) .feature-property-trigger{width:107px}
+.project-overview-inline-properties>.feature-property:nth-of-type(2) .feature-property-trigger{width:102px}
+.project-overview-inline-properties>.feature-property:nth-of-type(3) .feature-property-trigger{width:66.5px}
+.project-overview-inline-properties .project-inline-trigger{width:auto;min-width:0}
+.project-overview-members-trigger{display:inline-flex;align-items:center;justify-content:center;width:41.5px;height:28px;padding:0 6px;border:0;border-radius:9999px;background:transparent;color:var(--text)}
+.project-overview-members-trigger:hover,.project-overview-members-trigger[aria-expanded=true]{background:var(--hover)}
+.project-overview-member-avatars{display:flex;align-items:center}
+.project-overview-member-avatars>.avatar+.avatar{margin-left:-5px}
+.project-overview-inline-properties>.icon{margin-inline:12px}
+.project-overview-inline-properties .project-date-targetDate{width:108px}
+.project-customer-row{margin-top:12px}
+.project-overview-layout .feature-resource-row>span{width:71px}
+.project-overview-layout .feature-resource-row{margin:12px 0}
+.project-overview-layout .feature-resource-row button,.project-overview-layout .feature-resource-row a{min-height:28px;padding-inline:13px}
+.project-overview-layout .project-customer-row{margin:12px 0 16px}
+.project-overview-layout .feature-update-prompt{width:calc(100% + 17px);height:66px;margin:4px 0 0 -16px}
+.project-overview-inline-properties .project-date-targetDate.empty:after{content:'Target date'}
+.project-sidebar-dates .project-date-targetDate.empty:after{content:'Target'}
+.project-overview-inline-properties .project-date-startDate.empty:after,.project-sidebar-dates .project-date-startDate.empty:after{content:'Start date'}
+
+@container project-detail (max-width: 720px) {
+  .project-overview-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    padding: 20px 24px 70px;
+  }
+  .project-overview-layout > .feature-project-main {
+    padding: 24px 0 0;
+  }
+  .project-overview-layout > .feature-properties-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 12px;
+    padding: 0;
+  }
+}
+
+@container project-detail (max-width: 600px) {
+  .project-overview-layout {
+    padding-inline: 20px;
+  }
+  .project-overview-layout > .feature-properties-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.project-activity-history .feature-activity{align-items:flex-start;gap:12px}.project-activity-history .feature-activity>.feature-person{flex:0 0 128px;min-width:0}.project-activity-history .feature-activity>span:not(.feature-person){flex:1;min-width:0;overflow-wrap:anywhere}.project-activity-history .feature-activity>time{flex:none;white-space:nowrap}

@@ -1,0 +1,27 @@
+node_modules/
+dist/
+dist-server/
+release/
+.data/
+.env
+*.log
+test-results/
+playwright-report/
+.DS_Store
+
+dist-desktop/
+dist-mcp/
+packages/sdk/dist/
+
+.local/
+
+# Local research, verification, and task-continuity material
+artifacts/
+reference/
+resume-*.md
+BUILD_CONTRACT.md
+
+# Private/personal and non-redistributable assets
+public/avatars/
+src/client/fonts/Berkeley-Mono-Variable.woff2
+src/client/fonts/Berkeley-Mono-PROVENANCE.md

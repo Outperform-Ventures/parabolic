@@ -1,0 +1,4 @@
+.editor-authorship {position:absolute;inset:0;pointer-events:none}
+.editor-author-name {position:absolute;right:calc(100% + 36px);width:116px;text-align:right;font-size:.75rem;line-height:1.7;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:auto}
+.feature-document-authors .feature-document {padding-left:160px}
+@media(max-width:800px){.feature-document-authors .feature-document{padding-left:116px}.editor-author-name{width:80px;right:calc(100% + 20px)}}

@@ -1,0 +1,15 @@
+import {readFile,writeFile} from 'node:fs/promises';
+import {createApp} from '../src/server/app';
+import {searchEntities} from '../src/server/search';
+import type {Actor} from '../src/server/repository';
+type RecordFixture={key:string,kind:'issues'|'projects',title:string,statusType?:string,description?:string,comments?:string[],createdAt?:string,updatedAt?:string};
+type QueryFixture={query:string,expectedKeys:string[],includeArchived?:boolean};
+type Fixture={nativeEvidence:string,observedAt:string,limitations:string[],records:RecordFixture[],queries:QueryFixture[]};
+const path=process.argv[2],output=process.argv[3];if(!path)throw Error('Usage: node --import tsx scripts/compare-native-search.ts <observed-fixture.json> [result.json]');
+const fixture:Fixture=JSON.parse(await readFile(path,'utf8'));if(!fixture.nativeEvidence||!fixture.observedAt||!fixture.records.length||!fixture.queries.length)throw Error('Provide native evidence, observation time, records and observed query results.');
+const app=createApp({databasePath:':memory:',port:0});try{
+ const setup=await app.auth.setup({name:'Comparison owner',email:'comparison@example.test',password:'isolated-comparison-password'}),actor:Actor={userId:setup.user.id,workspaceId:setup.workspaceId,role:'owner',scopes:['admin'],now:new Date('2026-01-01T00:00:00.000Z')},repo=app.repo,team=repo.all('teams',actor.workspaceId)[0],statuses=repo.all('statuses',actor.workspaceId);const types=new Map(statuses.map(status=>[status.type,status.id])),keys=new Map<string,string>();
+ for(const record of fixture.records){let statusId=types.get(record.statusType);if(record.kind==='issues'&&!statusId){statusId=repo.create(actor,'statuses',{teamId:team.id,name:record.statusType,type:record.statusType}).id;types.set(record.statusType,statusId)}const created=repo.create(actor,record.kind,record.kind==='issues'?{teamId:team.id,statusId,title:record.title,description:record.description||''}:{name:record.title,description:record.description||'',status:'started',teamIds:[team.id]});keys.set(created.id,record.key);repo.save(record.kind,{...created,...(record.kind==='issues'?{identifier:record.key}:{}),createdAt:record.createdAt||created.createdAt,updatedAt:record.updatedAt||created.updatedAt},'update',actor);for(const body of record.comments||[])repo.create(actor,'comments',{issueId:created.id,body});}
+ const results=fixture.queries.map(query=>{const actual=searchEntities(repo,actor,query.query,{kinds:['issues','projects'],first:500,includeArchived:query.includeArchived}).nodes.map(item=>keys.get(item.id));return {...query,actualKeys:actual,matched:JSON.stringify(actual)===JSON.stringify(query.expectedKeys),positions:query.expectedKeys.map((key,index)=>({key,native:index+1,ours:actual.indexOf(key)+1}))}});
+ const report={nativeEvidence:fixture.nativeEvidence,observedAt:fixture.observedAt,records:fixture.records.length,results,allOrdersMatched:results.every(result=>result.matched),limitations:fixture.limitations};const json=JSON.stringify(report,null,2)+'\n';if(output)await writeFile(output,json);process.stdout.write(json);
+}finally{await app.close()}

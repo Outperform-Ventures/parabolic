@@ -1,0 +1,70 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createApp } from '../../src/server/app.ts';
+import type { Actor } from '../../src/server/repository.ts';
+
+async function fixture(){const app=createApp({databasePath:':memory:',port:0});const setup=await app.auth.setup({email:'owner@example.com',name:'Owner',password:'owner-secure-password'});const actor:Actor={userId:setup.user.id,workspaceId:setup.workspaceId,role:'owner',scopes:['read','write','admin']};return {app,repo:app.repo,actor,team:app.repo.all('teams',actor.workspaceId)[0]};}
+
+test('templates validate forms, apply properties, escape answers and create children atomically',async()=>{const f=await fixture();try{
+  const {repo,actor,team}=f;
+  const template=repo.create(actor,'templates',{name:'Bug',type:'issue',properties:{title:'Bug: {{summary}}',priority:2,description:'<p>Investigate {{summary}}</p>'},formFields:[{id:'guide',type:'instructions',content:'<p>Include reproduction steps.</p>'},{id:'summary',label:'Summary',type:'text',required:true},{id:'deadline',label:'Due',type:'date',property:'dueDate',required:true},{id:'severity',label:'Priority',type:'property',property:'priority',required:true}],subIssues:[{title:'Reproduce {{summary}}'},{title:'Fix',subIssues:[{title:'Add regression coverage'}]}]});
+  const before=repo.all('issues',actor.workspaceId).length;
+  assert.throws(()=>repo.create(actor,'issues',{teamId:team.id,templateId:template.id,templateAnswers:{}}),/Summary is required/);assert.equal(repo.all('issues',actor.workspaceId).length,before);
+  const issue=repo.create(actor,'issues',{teamId:team.id,templateId:template.id,templateAnswers:{summary:'<script>run()</script>',deadline:'2027-01-03',severity:'1'}});
+  assert.equal(issue.priority,1);assert.equal(issue.dueDate,'2027-01-03');assert.match(issue.title,/<script>run/);assert.match(issue.description,/&lt;script&gt;run/);assert.ok(!issue.description.includes('<script>'));assert.match(issue.description,/Include reproduction/);
+  const all=repo.all('issues',actor.workspaceId);const children=all.filter(i=>i.parentId===issue.id);assert.equal(children.length,2);assert.equal(all.filter(i=>i.parentId===children.find(i=>i.title==='Fix')!.id).length,1);
+  assert.throws(()=>repo.create(actor,'issues',{teamId:team.id,title:'Nested',parentId:issue.id,templateId:template.id,templateAnswers:{summary:'x',deadline:'2027-01-03',severity:1}}),/Sub-issue templates/);
+  const broken=repo.create(actor,'templates',{name:'Invalid child',type:'issue',properties:{title:'Parent'},subIssues:[{title:'Valid child'},{title:''}]});const count=repo.all('issues',actor.workspaceId).length;
+  assert.throws(()=>repo.create(actor,'issues',{teamId:team.id,templateId:broken.id}),/Title is required/);assert.equal(repo.all('issues',actor.workspaceId).length,count,'Failure in any child rolls back the parent and earlier children');
+}finally{await f.app.close();}});
+
+test('team defaults distinguish team members, reject form member defaults and labels remain exclusive by group',async()=>{const f=await fixture();try{
+  const {repo,actor,team}=f;const member=repo.create(actor,'templates',{name:'Member default',type:'issue',properties:{title:'Member task',priority:3}});const outsider=repo.create(actor,'templates',{name:'Nonmember form',type:'issue',properties:{title:'Request'},formFields:[{id:'details',label:'Details',type:'textarea',required:true}]});
+  assert.throws(()=>repo.update(actor,'teams',team.id,{defaultTemplateId:outsider.id}),/member default/);
+  repo.update(actor,'teams',team.id,{defaultTemplateId:member.id,nonMemberDefaultTemplateId:outsider.id});assert.equal(repo.create(actor,'issues',{teamId:team.id}).priority,3);
+  const explicit=repo.create(actor,'issues',{teamId:team.id,title:'Explicit fields',priority:0,description:'',labelIds:[]});assert.equal(explicit.priority,0);assert.equal(explicit.description,'');assert.deepEqual(explicit.labelIds,[]);
+  assert.throws(()=>repo.update(actor,'templates',member.id,{formFields:[{id:'x',type:'text'}]}),/member default/);
+  repo.update(actor,'teams',team.id,{memberIds:[],ownerIds:[]});assert.throws(()=>repo.create(actor,'issues',{teamId:team.id,title:'Request'}),/Details is required/);const request=repo.create(actor,'issues',{teamId:team.id,title:'Request',templateAnswers:{details:'Public team intake'}});assert.equal(request.templateId,outsider.id);
+  const bug=repo.create(actor,'labels',{name:'Bug',group:'Type'}),feature=repo.create(actor,'labels',{name:'Feature',group:'Type'}),urgent=repo.create(actor,'labels',{name:'Customer urgent',group:'Customer'});
+  assert.throws(()=>repo.update(actor,'issues',request.id,{labelIds:[bug.id,feature.id]}),/only one label/);assert.deepEqual(repo.update(actor,'issues',request.id,{labelIds:[bug.id,urgent.id]}).labelIds,[bug.id,urgent.id]);
+  const properties=repo.create(actor,'templates',{name:'Required properties',type:'issue',formFields:[{id:'title',label:'Title',type:'property',property:'title',required:true},{id:'kind',label:'Type',type:'property',property:'labelIds',group:'Type',required:true}]});assert.throws(()=>repo.create(actor,'issues',{templateId:properties.id,teamId:team.id,title:'Ready title',labelIds:[urgent.id]}),/Type is required/);assert.deepEqual(repo.create(actor,'issues',{templateId:properties.id,teamId:team.id,title:'Ready title',labelIds:[bug.id,urgent.id]}).labelIds,[urgent.id,bug.id]);
+}finally{await f.app.close();}});
+
+test('issue and project template defaults enforce team hierarchy scope and accept ancestor templates',async()=>{const f=await fixture();try{
+  const {repo,actor,team}=f;const child=repo.create(actor,'teams',{name:'Child',initializeWorkflow:false,key:'CHD',parentId:team.id,memberIds:[actor.userId]});const unrelated=repo.create(actor,'teams',{name:'Unrelated',key:'OTH'});const issueTemplate=repo.create(actor,'templates',{name:'Scoped issue',type:'issue',teamId:team.id,title:'Inherited title'}),projectTemplate=repo.create(actor,'templates',{name:'Scoped project',type:'project',teamId:team.id,title:'Inherited project'});
+  const parentStarted=repo.all('statuses',actor.workspaceId).find(status=>status.teamId===team.id&&status.type==='started')!,childStarted=repo.create(actor,'statuses',{teamId:child.id,name:'Implementing',type:'started'});repo.update(actor,'templates',issueTemplate.id,{properties:{statusId:parentStarted.id}});
+  repo.update(actor,'teams',child.id,{defaultTemplateId:issueTemplate.id,defaultProjectTemplateId:projectTemplate.id});assert.equal(repo.create(actor,'issues',{teamId:child.id}).title,'Inherited title');assert.equal(repo.create(actor,'projects',{teamIds:[child.id]}).name,'Inherited project');
+  assert.equal(repo.create(actor,'issues',{teamId:child.id,templateId:issueTemplate.id,statusId:parentStarted.id}).statusId,childStarted.id);
+  const parentLabel=repo.create(actor,'labels',{name:'Inherited label',teamId:team.id});assert.deepEqual(repo.create(actor,'issues',{teamId:child.id,title:'Inherited label',labelIds:[parentLabel.id]}).labelIds,[parentLabel.id]);assert.throws(()=>repo.create(actor,'issues',{teamId:unrelated.id,title:'Wrong label scope',labelIds:[parentLabel.id]}),/different team hierarchy/);
+  assert.throws(()=>repo.update(actor,'teams',unrelated.id,{defaultTemplateId:issueTemplate.id}),/different team hierarchy/);assert.throws(()=>repo.update(actor,'teams',unrelated.id,{defaultProjectTemplateId:projectTemplate.id}),/different team hierarchy/);assert.throws(()=>repo.create(actor,'issues',{teamId:unrelated.id,templateId:issueTemplate.id}),/different team hierarchy/);const moved=repo.update(actor,'teams',child.id,{parentId:unrelated.id});assert.notEqual(moved.defaultTemplateId,issueTemplate.id);assert.equal(repo.raw('templates',moved.defaultTemplateId)!.teamId,child.id);repo.update(actor,'teams',team.id,{defaultTemplateId:issueTemplate.id});assert.throws(()=>repo.update(actor,'templates',issueTemplate.id,{teamId:unrelated.id}),/invalidate a team default/);
+}finally{await f.app.close();}});
+
+test('cross-team parent and child completion select the receiving issue workflow',async()=>{const f=await fixture();try{
+  const {repo,actor,team}=f;const second=repo.create(actor,'teams',{name:'Second',initializeWorkflow:false,key:'TWO'});const secondTodo=repo.create(actor,'statuses',{teamId:second.id,name:'Planned',type:'unstarted'});const secondDone=repo.create(actor,'statuses',{teamId:second.id,name:'Shipped',type:'completed'});const firstDone=repo.all('statuses',actor.workspaceId).find(s=>s.teamId===team.id&&s.type==='completed')!;
+  repo.update(actor,'teams',team.id,{autoCloseParentIssues:true});const parent=repo.create(actor,'issues',{teamId:team.id,title:'Parent'});const child=repo.create(actor,'issues',{teamId:second.id,statusId:secondTodo.id,title:'Child',parentId:parent.id});repo.update(actor,'issues',child.id,{statusId:secondDone.id});assert.equal(repo.raw('issues',parent.id)!.statusId,firstDone.id);
+  repo.update(actor,'teams',team.id,{autoCloseSubIssues:true});const next=repo.create(actor,'issues',{teamId:team.id,title:'Parent close'});const nextChild=repo.create(actor,'issues',{teamId:second.id,statusId:secondTodo.id,title:'Child close',parentId:next.id});repo.update(actor,'issues',next.id,{statusId:firstDone.id});assert.equal(repo.raw('issues',nextChild.id)!.statusId,secondDone.id);
+  const policy=repo.create(actor,'slaPolicies',{name:'Business target',duration:2,durationUnit:'businessDay',enabled:false});assert.ok(repo.create(actor,'issues',{teamId:team.id,title:'Explicit modern SLA policy',slaPolicyId:policy.id}).slaDueAt);
+}finally{await f.app.close();}});
+
+test('project plans create fresh milestones, linked issues and documents with relative dates in one transaction',async()=>{const f=await fixture();try{
+  const {repo,actor,team}=f;const template=repo.create(actor,'templates',{name:'Delivery plan',type:'project',properties:{name:'Project default',teamIds:[team.id],summary:'Template summary'},projectPlan:{durationDays:10,milestones:[{id:'launch',name:'Launch',targetOffsetDays:8}],issues:[{id:'child',title:'Implement',parentKey:'parent',milestoneKey:'launch',dueOffsetDays:5},{id:'parent',title:'Deliver'}],documents:[{id:'brief',title:'Brief',content:'<h2>Project brief</h2>'}]}});
+  const project=repo.create(actor,'projects',{templateId:template.id,name:'Launch project',startDate:'2028-02-27'});assert.equal(project.targetDate,'2028-03-08');assert.equal(project.summary,'Template summary');
+  const milestone=repo.all('milestones',actor.workspaceId).find(value=>value.projectId===project.id)!;assert.equal(milestone.targetDate,'2028-03-06');assert.notEqual(milestone.id,'launch');const issues=repo.all('issues',actor.workspaceId).filter(value=>value.projectId===project.id),child=issues.find(value=>value.title==='Implement')!,parent=issues.find(value=>value.title==='Deliver')!;assert.equal(child.parentId,parent.id);assert.equal(child.milestoneId,milestone.id);assert.equal(child.dueDate,'2028-03-03');assert.equal(repo.all('documents',actor.workspaceId).filter(value=>value.projectId===project.id).length,1);
+  const second=repo.create(actor,'projects',{templateId:template.id,name:'Second',startDate:'2028-04-01'});assert.equal(repo.all('issues',actor.workspaceId).filter(value=>value.projectId===second.id).length,2);
+  const invalid=repo.create(actor,'templates',{name:'Invalid plan',type:'project',properties:{name:'Invalid',teamIds:[team.id]},projectPlan:{milestones:[{id:'milestone',name:'Would roll back'}],issues:[{id:'issue',title:'Unknown milestone',milestoneKey:'missing'}]}});const counts=['projects','milestones','issues','documents'].map(kind=>repo.all(kind,actor.workspaceId).length);assert.throws(()=>repo.create(actor,'projects',{templateId:invalid.id}),/unknown template milestone/);assert.deepEqual(['projects','milestones','issues','documents'].map(kind=>repo.all(kind,actor.workspaceId).length),counts);
+}finally{await f.app.close();}});
+
+test('required intake text rejects whitespace and structured values without creating an issue',async()=>{const f=await fixture();try{
+ const {repo,actor,team}=f,template=repo.create(actor,'templates',{name:'Validated intake',type:'issue',title:'Request',formFields:[{id:'details',label:'Details',type:'textarea',required:true},{id:'effort',label:'Effort',type:'number',required:true},{id:'consent',label:'Consent',type:'checkbox',required:true}]});
+ const count=repo.all('issues',actor.workspaceId).length;
+ for(const details of ['  \n\t ',{text:'hidden object'},['array text']])assert.throws(()=>repo.create(actor,'issues',{teamId:team.id,templateId:template.id,templateAnswers:{details,effort:0,consent:true}}),/Details (is required|requires text)/);
+ assert.equal(repo.all('issues',actor.workspaceId).length,count);
+ const issue=repo.create(actor,'issues',{teamId:team.id,templateId:template.id,templateAnswers:{details:'Actual request',effort:0,consent:true}});assert.match(issue.description,/Actual request/);assert.match(issue.description,/>0</);
+}finally{await f.app.close();}});
+
+test('workspace templates cannot preset team-only properties and malformed form options fail at template save',async()=>{const f=await fixture();try{
+ const {repo,actor,team}=f,status=repo.all('statuses',actor.workspaceId).find(s=>s.teamId===team.id)!,label=repo.create(actor,'labels',{name:'Team label',teamId:team.id});
+ for(const properties of [{statusId:status.id},{labelIds:[label.id]}])assert.throws(()=>repo.create(actor,'templates',{name:'Invalid workspace',type:'issue',properties}),/Workspace templates cannot/);
+ for(const options of [[null],[{}],[[1,2]],[{label:'Value',value:{bad:true}}]])assert.throws(()=>repo.create(actor,'templates',{name:'Invalid field',type:'issue',formFields:[{id:'choice',label:'Choice',type:'select',options}]}),/Form options/);
+ assert.ok(repo.create(actor,'templates',{name:'Scoped',type:'issue',teamId:team.id,properties:{statusId:status.id,labelIds:[label.id]},formFields:[{id:'choice',label:'Choice',type:'select',options:[{label:'Zero',value:0},'Other']}]}).id);
+}finally{await f.app.close()}});

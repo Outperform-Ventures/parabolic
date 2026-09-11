@@ -1,0 +1,64 @@
+import { test, expect } from '@playwright/test';
+import { resolve } from 'node:path';
+import { createApp } from '../../src/server/app';
+
+test('workspace menu matches measured geometry and preserves keyboard switching, creation and account actions', async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 1777, height: 991 });
+  const app = createApp({ databasePath: ':memory:', port: 0, staticDir: resolve(process.env.PARABOLIC_FONT_RENDERER_DIR || 'dist') });
+  const { url } = await app.start();
+  try {
+    await page.request.post(url + '/auth/setup', { data: { name: 'Workspace menu owner', email: 'workspace-menu@example.test', password: 'Workspace-menu-password', workspaceName: 'First workspace' } });
+    const first = await (await page.request.get(url + '/api/v1/state')).json();
+    await page.request.post(url + '/auth/workspaces', { data: { name: 'Second workspace' } });
+    await page.request.post(url + '/auth/workspace', { data: { workspaceId: first.workspaceId } });
+    await page.goto(url + '/projects');
+    const trigger = page.getByRole('button', { name: / Workspace Menu$/ });
+    await expect(trigger).toHaveAttribute('aria-label','First workspace Workspace Menu');
+    await expect(trigger).toContainText('First workspace');
+    await trigger.click();
+    const menu = page.getByRole('menu', { name: 'Workspace actions', exact: true });
+    await expect(menu).toBeVisible();
+    const filter = page.getByRole('searchbox', { name: 'Filter…', exact: true });
+    await expect(filter).toBeFocused();
+    await expect(menu.getByRole('status')).toHaveText('Showing all items');
+    await filter.fill('log');
+    await expect(menu.getByRole('menuitem')).toHaveCount(1);
+    await expect(menu.getByRole('menuitem', { name: /^Log out/ })).toBeVisible();
+    await expect(menu.getByRole('status')).toHaveText('Showing 1 item');
+    await filter.press('ArrowDown');
+    await expect(menu.getByRole('menuitem', { name: /^Log out/ })).toBeFocused();
+    await filter.focus();
+    await filter.fill('');
+    await expect(menu.getByRole('menuitem')).toHaveCount(4);
+    expect(await menu.locator(':scope > button > span').allTextContents()).toEqual(['Settings', 'Invite and manage members', 'Switch workspace', 'Log out']);
+    const geometry = await menu.evaluate(element => {
+      const bounds = element.getBoundingClientRect(), trigger = document.querySelector('[aria-label$=" Workspace Menu"]')!.getBoundingClientRect(), style = getComputedStyle(element);
+      return { width: bounds.width, height: bounds.height, left: bounds.left, anchorLeft: trigger.left, gap: bounds.top - trigger.bottom, radius: style.borderRadius, color: style.color, background: style.backgroundColor, border: style.borderColor, shadow: style.boxShadow, rows: [...element.querySelectorAll(':scope > button')].map(row => row.getBoundingClientRect().height) };
+    });
+    expect(geometry).toMatchObject({ width: 231, height: 154, gap: 4, radius: '12px', rows: [32, 32, 32, 32] });
+    expect(geometry.left).toBe(geometry.anchorLeft);
+    await testInfo.attach('workspace-menu-geometry', { body: JSON.stringify(geometry, null, 2), contentType: 'application/json' });
+    await testInfo.attach('workspace-menu', { body: await page.screenshot(), contentType: 'image/png' });
+    await page.keyboard.press('Escape'); await expect(menu).toHaveCount(0); await expect(trigger).toBeFocused();
+    await trigger.press('ArrowDown'); await expect(menu.getByRole('menuitem', { name: 'Settings G then S', exact: true })).toBeFocused();
+    await page.keyboard.press('Enter'); await expect(page).toHaveURL(url + '/settings');
+    await page.goto(url + '/projects'); await trigger.click(); await menu.getByRole('menuitem', { name: 'Invite and manage members', exact: true }).click(); await expect(page).toHaveURL(url + '/settings/members');
+    await page.goto(url + '/projects'); await trigger.click();
+    const switcher = menu.getByRole('menuitem', { name: 'Switch workspace O then W', exact: true });
+    await switcher.focus(); await page.keyboard.press('ArrowRight');
+    const submenu = page.getByRole('menu', { name: 'Switch workspace', exact: true });
+    await expect(submenu.getByRole('menuitem').first()).toBeFocused();
+    await testInfo.attach('workspace-submenu-order', { body: JSON.stringify(await submenu.getByRole('menuitem').allTextContents()), contentType: 'application/json' });
+    await page.keyboard.press('ArrowLeft'); await expect(submenu).toHaveCount(0); await expect(switcher).toBeFocused();
+    await page.keyboard.press('ArrowRight'); await page.keyboard.press('s'); await expect(submenu.getByRole('menuitem', { name: 'Second workspace', exact: true })).toBeFocused(); await page.keyboard.press('Enter');
+    await expect(trigger).toContainText('Second workspace'); await expect(page).toHaveURL(url + '/my-issues');
+    await trigger.click(); await switcher.click(); await submenu.getByRole('menuitem', { name: 'Create or join a workspace…', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Create or join a workspace', exact: true });
+    await dialog.getByLabel('Workspace name', { exact: true }).fill('Third workspace');
+    await dialog.getByRole('button', { name: 'Create workspace', exact: true }).click();
+    await expect(trigger).toContainText('Third workspace');
+    await trigger.click(); await menu.getByRole('menuitem', { name: /^Log out/ }).click();
+    await expect.poll(async () => (await (await page.request.get(url + '/auth/status')).json()).user).toBeNull();
+  } finally { await page.close(); await app.close(); }
+});

@@ -1,0 +1,31 @@
+.saved-view-icon-picker {
+  display: inline-flex;
+  flex: none;
+  margin: -5px;
+}
+
+.saved-view-icon-picker .entity-icon-trigger {
+  color: var(--muted);
+}
+
+.saved-view-icon-picker .entity-icon-trigger[aria-expanded="true"],
+.saved-view-icon-picker .entity-icon-trigger:hover,
+.saved-view-icon-picker .entity-icon-trigger:focus-visible {
+  color: var(--text);
+  background: var(--hover);
+}
+
+.dropdown-content.saved-view-details-menu {
+  width: 200px;
+  min-width: 200px;
+  padding: 6px 0;
+  border-radius: 10px;
+}
+
+.dropdown-content.saved-view-details-menu
+  > .issue-action-filter[data-compact-empty]
+  > .menu-item {
+  height: 32px;
+  padding-inline: 14px;
+  border-radius: 0;
+}

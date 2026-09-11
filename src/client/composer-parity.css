@@ -1,0 +1,47 @@
+/* Measured against native Parabolic at 1777×991 in non-Settings batch 001. */
+.issue-composer:not(.expanded){margin-top:4vh;border-radius:21px}
+.issue-composer:not(.expanded) .composer-top{height:52px;padding:0 12px;gap:6px;font-size:13px;color:var(--text)}
+.issue-composer .composer-top .property-button{border-radius:9999px;padding:3px 7px;background:var(--hover)}
+.issue-composer:not(.expanded) .composer-body{padding:0 18px 12px}
+.issue-composer:not(.expanded) .issue-title-input{height:29px;font-size:18px;line-height:24px;font-weight:500;padding-top:3px;letter-spacing:normal}
+.issue-composer:not(.expanded) .composer-body .rich-editor{margin-top:6px;min-height:76px}
+.issue-composer:not(.expanded) .composer-body .rich-content{min-height:76px;font-size:15px;line-height:24px}
+.issue-composer .composer-suggestions{display:flex;align-items:center;gap:6px;min-width:0;margin:2px -2px 8px;overflow:hidden}
+.issue-composer .composer-suggestions button{height:24px;display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;border:0;border-radius:9999px;padding:3px 8px;background:var(--hover);color:var(--muted);font-size:12px;line-height:16px;white-space:nowrap;max-width:210px;overflow:hidden;text-overflow:ellipsis}
+.issue-composer .composer-suggestions button:hover,.issue-composer .composer-suggestions button:focus-visible{background:var(--selected);color:var(--text)}
+.issue-composer .composer-suggestions-label{background:transparent!important;padding-left:2px!important}
+.issue-composer .composer-suggestion .avatar{flex:0 0 auto}
+.issue-composer:not(.expanded) .composer-properties{margin:6px -6px 0;gap:6px}
+.issue-composer .composer-properties .property-button{height:24px;min-height:24px;padding:4px 7px;border:1px solid transparent;border-radius:9999px;background:var(--hover);font-size:12px;font-weight:500;line-height:12px;gap:4px}
+.issue-composer .composer-properties .property-button>svg{width:14px;height:14px}
+.issue-composer .composer-footer{height:52px;border:0;padding:0 12px;gap:12px}
+.issue-composer .composer-footer>.button{height:28px;border-radius:9999px}
+.issue-composer .composer-attach{width:28px;height:28px;border-radius:50%;background:var(--hover);color:var(--muted)}
+.issue-composer .toggle-label{font-size:12px;gap:6px}
+.issue-composer .toggle-label input{appearance:none;width:22px;height:14px;position:relative;border-radius:999px;background:var(--muted);margin:0;cursor:pointer}
+.issue-composer .toggle-label input:before{content:'';position:absolute;width:10px;height:10px;border-radius:50%;background:white;top:2px;left:2px}
+.issue-composer .toggle-label input:checked{background:var(--accent)}
+.issue-composer .toggle-label input:checked:before{left:10px}
+.issue-composer .toggle-label input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* Native dark chip/attachment surface, measured separately from global hover. */
+:root:not([data-theme]) .issue-composer .composer-properties .property-button,
+:root[data-theme="dark"] .issue-composer .composer-properties .property-button,
+:root:not([data-theme]) .issue-composer .composer-attach,
+:root[data-theme="dark"] .issue-composer .composer-attach{background:lch(17.574 1.589 272)}
+.issue-action-filter>.issue-primary-action{height:32px;border-radius:4px;padding:0}
+.issue-primary-action>.issue-primary-action-button{width:100%;height:32px;display:flex;align-items:center;gap:9px;border:0;border-radius:4px;padding:0 8px;font-size:13px;font-weight:400;line-height:20px;color:var(--text);background:transparent}
+.issue-primary-action-button>span{flex:1;text-align:left;min-width:0}
+.issue-primary-action-button>svg,.issue-primary-action-button>.priority-icon{flex:none;color:var(--muted);width:16px;height:16px}
+.issue-primary-action-button>svg:last-child{width:12px;height:12px}
+.issue-primary-action-button>kbd{font-family:inherit;font-size:11px;color:var(--muted);white-space:nowrap;margin-left:auto}
+/* Batch 008 rendered controls: geometry is scoped to issue creation/actions. */
+.issue-composer .composer-top [data-property="teamId"]{height:24px;min-height:24px;padding:0 7px;gap:4px;border:1px solid transparent;border-radius:9999px;background:var(--hover);font-size:12px;line-height:12px}
+:root:not([data-theme]) .issue-composer .composer-top [data-property="teamId"],:root[data-theme="dark"] .issue-composer .composer-top [data-property="teamId"]{background:lch(17.574 1.589 272)}
+.issue-composer .composer-properties .property-button>.status-icon,.issue-composer .composer-properties .property-button>.priority-icon{width:14px;height:14px;flex:0 0 14px}
+.issue-composer .composer-properties .property-button>.status-icon{margin:0;width:14px!important;height:14px!important}
+.issue-composer .composer-attach>svg{width:16px;height:16px}
+.dropdown-content.menu:has(>.issue-action-filter[data-compact-empty]){width:181px;min-width:181px;padding:6px 0}
+.dropdown-content>.issue-action-filter[data-compact-empty]>[role=menuitem]{height:32px;border-radius:0}
+.dropdown-content>.issue-action-filter[data-compact-empty]>.menu-item,.dropdown-content>.issue-action-filter[data-compact-empty]>.issue-primary-action>.property-button{padding:0 18px 0 14px;gap:8px;border-radius:0}
+.dropdown-content>.issue-action-filter[data-compact-empty]>.menu-separator{height:12px;margin:0;background:linear-gradient(to bottom,transparent 6px,var(--border) 6px,var(--border) 7px,transparent 7px)}
+.issue-action-filter .issue-menu-arrow{flex:none;width:6px;font-size:7px;line-height:1;color:var(--muted);text-align:right}

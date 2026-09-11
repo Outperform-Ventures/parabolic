@@ -1,0 +1,88 @@
+.group-color-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+}
+.group-header.issue-subgroup-header {
+  padding-left: 46px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.75rem;
+}
+.group-header.issue-subgroup-header strong {
+  font-weight: 500;
+  color: var(--muted);
+}
+.issue-list-scroll.board-scroll.has-swimlanes {
+  overflow: auto;
+  padding: 0 12px 12px;
+}
+.issue-swimlane-board {
+  min-height: 100%;
+  position: relative;
+}
+.swimlane-column-headers {
+  height: 40px;
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.swimlane-column-headers .group-header {
+  height: 40px;
+  background: var(--bg);
+  padding: 0 14px;
+}
+.swimlane-row-label {
+  height: 40px;
+  position: sticky;
+  top: 40px;
+  left: 0;
+  z-index: 5;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  font-size: 0.75rem;
+  max-width: 100vw;
+}
+.swimlane-row-label strong {
+  font-weight: 500;
+}
+.swimlane-cells {
+  position: relative;
+  height: 320px;
+}
+.swimlane-cell {
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  padding: 8px 8px 0;
+  min-width: 0;
+}
+.swimlane-cell .board-virtual-scroll {
+  min-height: 0;
+  flex: 1;
+  overscroll-behavior: auto;
+}
+.swimlane-cell .board-create {
+  height: 32px;
+  flex: none;
+  text-align: left;
+  padding: 0 8px;
+  margin: 4px 0;
+}
+.swimlane-cell .board-card {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.board-card-title .status-icon {
+  margin-right: 5px;
+}

@@ -1,0 +1,5 @@
+.label-settings-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0}.label-inline-properties{display:flex;align-items:center;gap:10px;min-width:0;flex:1}.label-inline-properties>div:last-child{min-width:0}.label-name-button{border:0;background:transparent;color:var(--text);font:inherit;font-weight:500;padding:3px 0;text-align:left;cursor:text}.label-inline-name{width:220px;max-width:100%}.label-color-button{display:flex;align-items:center;justify-content:center;width:26px;height:26px;background:transparent;border:0;border-radius:5px}.label-color-button:hover{background:var(--hover)}.label-color-button span{width:12px;height:12px;border-radius:50%}.label-color-editor{padding:12px;width:250px}.label-color-editor label{display:flex;gap:8px;align-items:center;margin-top:10px}.label-usage{font-size:12px;color:var(--muted);white-space:nowrap}.label-scope{font-size:12px;color:var(--muted)}
+
+.feature-settings-row[data-label-id][data-selected=true]{background:var(--active)}
+
+.label-usage-details{display:grid;grid-template-columns:auto auto;column-gap:8px;font-size:11px;color:var(--muted)}.label-last-applied{grid-column:1/-1;white-space:nowrap}

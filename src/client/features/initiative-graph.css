@@ -1,0 +1,139 @@
+.initiative-completion-graph {
+  margin: 32px 0;
+  min-width: 0;
+}
+.initiative-completion-graph > header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.initiative-completion-graph h3 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+.initiative-completion-graph > header > span {
+  margin-left: auto;
+  font-size: 0.6875rem;
+}
+.initiative-completion-graph header button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6875rem;
+}
+.initiative-graph-plot {
+  position: relative;
+  margin-top: 16px;
+}
+.initiative-graph-plot > svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+  border-radius: 4px;
+}
+.initiative-graph-plot > svg text {
+  font-size: 0.6875rem;
+  fill: var(--muted);
+}
+.initiative-graph-plot > svg:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 4px;
+}
+.initiative-graph-plot > svg path[fill] {
+  transition: fill-opacity 100ms ease;
+}
+.initiative-graph-tooltip {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  max-width: min(400px, 85%);
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  font-size: 0.6875rem;
+  pointer-events: none;
+  display: grid;
+  gap: 9px;
+}
+.initiative-graph-tooltip > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.initiative-graph-tooltip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.initiative-graph-tooltip b {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.initiative-graph-projects {
+  margin-top: 12px;
+}
+.initiative-graph-projects summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  width: max-content;
+}
+.initiative-graph-projects > input {
+  margin: 12px 0 8px;
+  padding: 6px 8px;
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 0.75rem;
+}
+.initiative-graph-projects > div {
+  max-height: 260px;
+  overflow: auto;
+}
+.initiative-graph-project-row {
+  display: flex;
+  align-items: center;
+  border-radius: 5px;
+  font-size: 0.75rem;
+}
+.initiative-graph-project-row:hover {
+  background: var(--hover);
+}
+.initiative-graph-project-row > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 7px;
+  text-align: left;
+}
+.initiative-graph-project-row > button > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.initiative-graph-project-row small {
+  margin-left: auto;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.initiative-graph-project-row button[aria-pressed="true"] {
+  color: var(--accent);
+}
+.initiative-graph-project-row a {
+  padding: 7px;
+  color: var(--muted);
+}

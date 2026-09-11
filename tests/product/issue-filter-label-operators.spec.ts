@@ -1,0 +1,10 @@
+import {test,expect} from '@playwright/test';import {createApp} from '../../src/server/app';import {resolve} from 'node:path';
+test('label chip matches all, any, excludes any and excludes all without Advanced filters',async({page})=>{
+const app=createApp({databasePath:':memory:',port:0,staticDir:resolve('dist')}),{url}=await app.start();try{
+await page.request.post(url+'/auth/setup',{data:{name:'Owner',email:'label-modes@example.test',password:'filter-password'}});const state=await page.request.get(url+'/api/v1/state').then(r=>r.json()),team=state.teams[0],labels=[];
+for(const name of ['Alpha','Beta'])labels.push(await page.request.post(url+'/api/v1/labels',{data:{name,teamId:team.id,color:'#f00'}}).then(r=>r.json()));
+for(const [title,labelIds]of [['Neither',[]],['Alpha only',[labels[0].id]],['Beta only',[labels[1].id]],['Both',labels.map(l=>l.id)]])await page.request.post(url+'/api/v1/issues',{data:{title,teamId:team.id,labelIds}});
+await page.goto(url+'/team/'+team.id+'/all');await page.getByRole('button',{name:'Filter issues',exact:true}).click();await page.getByRole('menuitem',{name:'Labels',exact:true}).click();await page.getByRole('menuitem',{name:'Alpha',exact:true}).click();await page.getByRole('menuitem',{name:'Beta',exact:true}).click();await page.keyboard.press('Escape');await expect(page.locator('[data-testid=issue-row]')).toHaveCount(1);await expect(page.getByRole('button',{name:'Labels operator',exact:true})).toHaveText('include all of');
+for(const [mode,count]of [['include any of',3],['exclude if any of',1],['exclude if all',3],['include all of',1]] as const){await page.getByRole('button',{name:'Labels operator',exact:true}).click();await page.getByRole('menuitem',{name:mode,exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.locator('[data-testid=issue-row]')).toHaveCount(count);await page.reload();await expect(page.locator('[data-testid=issue-row]')).toHaveCount(count);}
+}finally{await page.close();await app.close()}
+});

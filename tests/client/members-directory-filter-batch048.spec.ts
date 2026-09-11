@@ -1,0 +1,52 @@
+import {test,expect} from '@playwright/test';
+import {resolve} from 'node:path';
+import {randomUUID} from 'node:crypto';
+import {createApp} from '../../src/server/app';
+
+test('Members directory matches the native searchable multi-filter flow and persists selections',async({page})=>{
+ const app=createApp({databasePath:':memory:',port:0,staticDir:resolve('dist')}),{url}=await app.start();
+ try{
+  await page.request.post(url+'/auth/setup',{data:{name:'Directory owner',email:'owner@example.test',password:'owner-password'}});
+  const state=await page.request.get(url+'/api/v1/state').then(r=>r.json()),actor={userId:state.user.id,workspaceId:state.workspaceId,role:'owner',scopes:['admin']},primary=state.teams[0],second=app.repo.create(actor,'teams',{name:'Second team',key:'SECOND'}),now=new Date().toISOString();
+  const addMember=(name:string,role:string,teamId:string)=>{const id=randomUUID();app.repo.save('users',{id,workspaceId:state.workspaceId,name,username:name.toLowerCase().replace(' ', '-'),email:name.toLowerCase().replace(' ','.')+'@example.test',createdAt:now,updatedAt:now,version:1},'create',actor);app.repo.save('memberships',{id:randomUUID(),workspaceId:state.workspaceId,userId:id,role,createdAt:now,updatedAt:now,version:1},'create',actor);app.repo.create(actor,'memberships',{teamId,userId:id,role:'member'});return id};
+  addMember('Admin Person','admin',primary.id);addMember('Member Person','member',primary.id);addMember('Guest Person','guest',second.id);
+  await page.goto(url+'/members');
+  await page.getByRole('button',{name:'Add filter',exact:true}).click();
+  const root=page.getByRole('listbox',{name:'Member filter fields'}),search=page.getByRole('searchbox',{name:'Add Filter…'});
+  await expect(page.getByRole('status')).toBeVisible();
+  await expect(root.getByRole('option')).toHaveText(['Advanced filter','Status','Teams']);
+  await search.fill('Status');
+  await expect(page.getByRole('status')).toHaveText('Showing 4 items');
+  await expect(root.getByRole('option')).toHaveText(['Status','StatusAdmin2 members','StatusGuest1 member','StatusMember1 member']);
+  await search.fill('');await root.getByRole('option',{name:'Status',exact:true}).click();
+  const statuses=page.getByRole('listbox',{name:'Member statuses'});
+  await expect(page.getByRole('searchbox',{name:'Filter…'})).toBeFocused();
+  await expect(statuses.getByRole('option')).toHaveText(['Admin2 members','Guest1 member','Member1 member']);
+  await statuses.getByRole('option',{name:/Member\s*1 member/}).getByRole('checkbox').check();
+  await expect(page.getByRole('link',{name:/Member Person/})).toBeVisible();
+  await expect(page.getByRole('link',{name:/Admin Person/})).toHaveCount(0);
+  await page.getByRole('heading',{name:'Members',exact:true}).click();
+  await page.getByRole('button',{name:'Add another filter',exact:true}).first().click();
+  await page.getByRole('listbox',{name:'Member filter fields'}).getByRole('option',{name:'Teams',exact:true}).click();
+  const teams=page.getByRole('listbox',{name:'Member teams'});
+  await expect(teams.getByRole('option').first()).toContainText('My teams');
+  await expect(teams).toContainText('Second team');
+  await teams.getByRole('option',{name:new RegExp(primary.name)}).getByRole('checkbox').check();
+  await expect(page.getByRole('link',{name:/Member Person/})).toBeVisible();
+  await expect.poll(()=>new URL(page.url()).searchParams.get('memberStatus')).toBe('member');
+  await expect.poll(()=>new URL(page.url()).searchParams.get('memberTeam')).toBe(primary.id);
+  await page.reload();
+  await expect(page.getByRole('link',{name:/Member Person/})).toBeVisible();
+  await expect(page.getByRole('link',{name:/Admin Person/})).toHaveCount(0);
+  await page.getByRole('button',{name:'Clear all filters',exact:true}).click();
+  await expect(page.getByRole('link',{name:/Admin Person/})).toBeVisible();
+  await page.getByRole('button',{name:'Add filter',exact:true}).click();
+  await page.getByRole('listbox',{name:'Member filter fields'}).getByRole('option',{name:'Advanced filter',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Open advanced filter',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Remove advanced filter',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Clear all filters',exact:true})).toBeDisabled();
+  await page.reload();await expect(page.getByRole('button',{name:'Open advanced filter',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Remove advanced filter',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Add filter',exact:true})).toBeVisible();
+ }finally{await app.close()}
+});

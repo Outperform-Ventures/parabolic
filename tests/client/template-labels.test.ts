@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {templateLabelDefaults} from '../../src/shared/template-labels';import {templateFields} from '../../src/client/template-utils';import type {Entity} from '../../src/shared/types';
+test('template application removes known retired defaults without mutating templates or hiding unknown references',()=>{
+ const labels=[{id:'old',archivedAt:'2026-01-01'},{id:'active'}] as unknown as Entity[],defaults={labelIds:['old','active','unknown'],priority:2},lookup=(id:string)=>labels.find(l=>l.id===id);assert.deepEqual(templateLabelDefaults(defaults,lookup),{labelIds:['active','unknown'],priority:2});assert.deepEqual(defaults.labelIds,['old','active','unknown']);assert.deepEqual(templateFields({id:'template',properties:defaults} as unknown as Entity,{teamId:'team'},labels).labelIds,['active','unknown']);assert.deepEqual(templateLabelDefaults({labelIds:'invalid'},lookup),{labelIds:'invalid'});
+});

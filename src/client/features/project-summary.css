@@ -1,0 +1,22 @@
+.feature-page:has(>.project-collection){display:flex;flex-direction:column;overflow:hidden}
+.feature-page:has(>.project-collection)>:not(.project-collection){flex-shrink:0}
+.project-collection{display:flex;flex:1;flex-direction:column;min-height:0;min-width:0}
+.project-collection>:not(.project-collection-content){flex-shrink:0}
+.project-collection-content{display:flex;flex:1;min-height:0;min-width:0;align-items:stretch;position:relative}
+.project-collection-results{flex:1;min-width:0;overflow:auto}
+.project-collection-results>.feature-board{min-height:350px}
+.project-summary{flex:0 0 400px;max-width:40%;padding:0 8px 8px 4px;min-height:0;overflow:hidden}
+.project-summary-card{height:100%;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--panel);box-shadow:var(--frame-shadow);overflow:auto}
+.project-summary-tabs{display:flex;height:32px;gap:6px;padding:2px;margin-top:-2px}
+.project-summary-tabs [role=tab]{flex:1;min-width:0;height:28px;padding:4px 12px;border:1px solid transparent;border-radius:9999px;background:var(--hover);color:var(--muted);font-size:.75rem;font-weight:500;line-height:normal}
+.project-summary-tabs [aria-selected=true]{background:var(--selected);color:var(--text)}
+.project-summary-rows{padding:10px 0}
+.project-summary-row{display:flex;align-items:center;gap:6px;width:100%;min-height:32px;margin-bottom:2px;padding:6px;border:0;border-radius:6px;background:transparent;color:var(--text);text-align:left;font-size:.8125rem;font-weight:450;line-height:normal}
+.project-summary-row:hover,.project-summary-row.selected{background:var(--hover)}
+.project-summary-row>.avatar,.project-summary-row>svg{flex-shrink:0}
+.project-summary-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.project-summary-count{margin-left:auto;font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.project-summary-hidden{display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;color:var(--muted);font-size:.75rem}
+@media(max-width:850px){.project-summary{position:absolute;inset:0 0 0 auto;max-width:100%;width:min(400px,100%);min-height:300px;z-index:6}.project-summary-card{box-shadow:var(--shadow);overflow:auto}}
+
+.project-summary-tabs button.active,.project-summary-tabs [aria-selected=true]{background:var(--hover)}

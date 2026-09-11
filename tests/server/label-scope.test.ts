@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createApp} from '../../src/server/app';import type {Actor} from '../../src/server/repository';
+test('rescoping labels preserves existing work edits, rejects new out-of-scope assignments and rolls back invalid batches',async()=>{
+ const app=createApp({databasePath:':memory:',port:0});try{const setup=await app.auth.setup({name:'Owner',email:'scope-label@example.test',password:'label-password'}),actor:Actor={userId:setup.user.id,workspaceId:setup.workspaceId,role:'owner',scopes:['admin']},repo=app.repo,a=repo.all('teams',actor.workspaceId)[0],b=repo.create(actor,'teams',{name:'Other',key:'OTH'}),label=repo.create(actor,'labels',{name:'Moving',teamId:a.id}),other=repo.create(actor,'labels',{name:'Other label',teamId:a.id}),issue=repo.create(actor,'issues',{title:'Assigned',teamId:a.id,labelIds:[label.id]});
+ assert.throws(()=>repo.transaction(()=>{repo.update(actor,'labels',label.id,{teamId:b.id});repo.update(actor,'labels',other.id,{teamId:'missing'})}));assert.equal(repo.get(actor,'labels',label.id).teamId,a.id);
+ repo.update(actor,'labels',label.id,{teamId:b.id});assert.equal(repo.update(actor,'issues',issue.id,{title:'Still editable'}).title,'Still editable');assert.throws(()=>repo.create(actor,'issues',{title:'New invalid assignment',teamId:a.id,labelIds:[label.id]}),/different team hierarchy/);assert.throws(()=>repo.update(actor,'issues',issue.id,{labelIds:[label.id,other.id],teamId:b.id}),/different team hierarchy/);
+ }finally{await app.close()}
+});

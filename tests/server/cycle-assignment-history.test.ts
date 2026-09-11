@@ -1,0 +1,18 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createApp} from '../../src/server/app';import {initializeCycleAssignmentHistory,recoverCycleAddedAt} from '../../src/server/cycle-assignment-history';import {Repository,type Actor} from '../../src/server/repository';
+test('cycle assignment recovery requires continuous snapshots and uses the last assignment',()=>{
+ const base={id:'issue',workspaceId:'workspace',createdAt:'2026-01-01T00:00:00Z'},event=(version:number,cycleId:string|null,updatedAt:string,action='update')=>({action,data:JSON.stringify({...base,version,cycleId,updatedAt})});
+ const records=[event(1,'cycle','2026-01-01T00:00:00Z','create'),event(2,null,'2026-01-02T00:00:00Z'),event(3,'cycle','2026-01-03T00:00:00Z'),event(4,'cycle','2026-01-04T00:00:00Z')],issue={...base,version:4,cycleId:'cycle'};
+ assert.equal(recoverCycleAddedAt(issue,records),'2026-01-03T00:00:00Z');assert.equal(recoverCycleAddedAt(issue,[records[0],records[3]]),null);assert.equal(recoverCycleAddedAt({...issue,version:5},records),null);assert.equal(recoverCycleAddedAt({...issue,cycleId:'other'},records),null);assert.equal(recoverCycleAddedAt(issue,records.slice(1)),'2026-01-03T00:00:00Z');assert.equal(recoverCycleAddedAt(issue,[records[3]]),null);
+});
+test('startup migration backfills proven historical times once, preserves edit times, and emits a sync change',async()=>{
+ const app=createApp({databasePath:':memory:',port:0});try{
+ const setup=await app.auth.setup({name:'Owner',email:'history@example.test',password:'owner-password'}),repo=app.repo,actor:Actor={userId:setup.user.id,workspaceId:setup.workspaceId,role:'owner',scopes:['admin'],now:new Date('2027-01-01T00:00:00Z')},team=repo.all('teams',actor.workspaceId)[0];const cycle=repo.create(actor,'cycles',{name:'Cycle',teamId:team.id,startDate:'2027-01-10T00:00:00Z',endDate:'2027-01-17T00:00:00Z'});
+ const issue=repo.create(actor,'issues',{title:'Legacy initial assignment',teamId:team.id,cycleId:cycle.id}),unknown=repo.create(actor,'issues',{title:'Incomplete history',teamId:team.id,cycleId:cycle.id});
+ // Reproduce an older database whose issue snapshots lacked cycleAddedAt.
+ for(const current of [issue,unknown]){const legacy={...current};delete legacy.cycleAddedAt;repo.db.prepare("UPDATE entities SET data=? WHERE kind='issues' AND id=?").run(JSON.stringify(legacy),current.id);repo.db.prepare("UPDATE changes SET data=json_remove(data,'$.cycleAddedAt') WHERE kind='issues' AND entity_id=?").run(current.id);}
+ repo.db.prepare("DELETE FROM changes WHERE kind='issues' AND entity_id=?").run(unknown.id);repo.db.prepare("DELETE FROM data_migrations WHERE name='cycle-assignment-history-v1'").run();const before=repo.db.prepare('SELECT MAX(seq) AS seq FROM changes').get() as any,activities=repo.all('activities',actor.workspaceId).length;
+ new Repository(repo.db);const recovered=repo.raw('issues',issue.id)!;assert.equal(recovered.cycleAddedAt,actor.now!.toISOString());assert.equal(recovered.updatedAt,issue.updatedAt);assert.equal(recovered.version,issue.version+1);assert.equal(repo.raw('issues',unknown.id)!.cycleAddedAt,undefined);assert.equal(repo.all('activities',actor.workspaceId).length,activities);
+ const changes=repo.db.prepare('SELECT * FROM changes WHERE seq>?').all(before.seq) as any[];assert.equal(changes.length,1);assert.equal(changes[0].entity_id,issue.id);assert.equal(JSON.parse(changes[0].data).cycleAddedAt,recovered.cycleAddedAt);
+ initializeCycleAssignmentHistory(repo);assert.equal(repo.raw('issues',issue.id)!.version,recovered.version);assert.equal((repo.db.prepare('SELECT MAX(seq) AS seq FROM changes').get() as any).seq,changes[0].seq);
+ }finally{await app.close()}
+});

@@ -1,0 +1,48 @@
+import React,{useEffect,useRef,useState} from 'react';
+import {Link,useLocation} from 'react-router-dom';
+import {RichEditor} from './components/ui';
+import {TemplateUpload} from './template-upload';
+import {emptyData} from '../shared/types';
+import {requesterRequest,type RequesterIdentity} from './requester-account';
+
+type Choice={value:string|number;label:string};
+type Field={id:string;type:string;label:string;description?:string;required:boolean;property?:string;content?:string;options?:Choice[]};
+type Form={id:string;name:string;fields:Field[];defaults:Record<string,any>};
+type Page={id:string;name:string;description:string;slug:string;forms:Form[]};
+const isolatedEditorData=emptyData();
+export function RequesterPortal({requester,onSessionEnded}:{requester:RequesterIdentity;onSessionEnded:()=>void}){
+ const location=useLocation(),base='/ask-access/'+requester.workspaceId,api='/asks-api/'+requester.workspaceId;
+ const [pages,setPages]=useState<Page[]|null>(null),[error,setError]=useState(''),[revision,setRevision]=useState(0);
+ const expired=useRef(onSessionEnded);expired.current=onSessionEnded;
+ useEffect(()=>{const controller=new AbortController();void requesterRequest(api+'/site',undefined,controller.signal).then(result=>{setPages(result.pages);setError('')}).catch(reason=>{if(controller.signal.aborted)return;if(reason.status===401)expired.current();else setError(reason.message)});return()=>controller.abort()},[api,revision]);
+ const parts=location.pathname.slice(base.length).split('/').filter(Boolean),slug=parts[0]==='pages'?parts[1]:undefined,formId=parts[2],page=pages?.find(page=>page.slug===slug),form=page?.forms.find(form=>form.id===formId),invalid=parts.length>3||(parts.length>0&&(parts[0]!=='pages'||!slug))||!!slug&&!page||!!formId&&!form;
+ if(error)return <><h1>Unable to load forms</h1><p role="alert">{error}</p><button className="button" onClick={()=>setRevision(value=>value+1)}>Try again</button></>;
+ if(!pages)return <p role="status">Loading forms…</p>;
+ if(invalid)return <><h1>Form unavailable</h1><p>This page or form is no longer available.</p><Link to={base}>Browse request forms</Link></>;
+ if(page&&form)return <RequesterSubmission key={requester.id+':'+page.id+':'+form.id} requester={requester} page={page} form={form} onSessionEnded={onSessionEnded}/>;
+ return <><h1>{page?.name||'How can we help?'}</h1><p>{page?.description||'Choose a page to submit a request.'}</p><div className="requester-page-list">{page?page.forms.map(form=><Link key={form.id} to={base+'/pages/'+page.slug+'/'+form.id}>{form.name}</Link>):pages.map(page=><Link key={page.id} to={base+'/pages/'+page.slug}><strong>{page.name}</strong><span>{page.description}</span></Link>)}</div>{!pages.length&&<p>No request pages are available.</p>}</>;
+}
+function RequesterSubmission({requester,page,form,onSessionEnded}:{requester:RequesterIdentity;page:Page;form:Form;onSessionEnded:()=>void}){
+ const base='/asks-api/'+requester.workspaceId,site='/ask-access/'+requester.workspaceId;
+ const [title,setTitle]=useState(form.defaults.title||''),[description,setDescription]=useState(form.defaults.description||''),[answers,setAnswers]=useState<Record<string,any>>(()=>Object.fromEntries(form.fields.filter(field=>field.property&&(Object.hasOwn(form.defaults,field.property)||field.property==='priority')).map(field=>[field.id,form.defaults[field.property!]??0]))),[error,setError]=useState(''),[busy,setBusy]=useState(false),[receipt,setReceipt]=useState<{identifier:string}|null>(null),[editorStatus,setEditorStatus]=useState({pending:false,error:''});
+ const submissionKey=useRef(crypto.randomUUID()),sending=useRef(false),controllers=useRef(new Set<AbortController>()),mounted=useRef(true);
+ useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;for(const controller of controllers.current)controller.abort()}},[]);
+ const uploadUrl=(fieldId:string)=>base+'/files?'+new URLSearchParams({pageSlug:page.slug,templateId:form.id,fieldId});
+ const answer=(field:Field,value:any)=>{setAnswers(previous=>({...previous,[field.id]:value}));if(field.property==='title')setTitle(value);if(field.property==='description')setDescription(value);setError('')};
+ const uploadDescription=async(file:File)=>{const controller=new AbortController();controllers.current.add(controller);try{const body=new FormData();body.append('file',file);const response=await fetch(uploadUrl('__description'),{method:'POST',body,credentials:'same-origin',signal:controller.signal}),result=await response.json();if(response.status===401)onSessionEnded();if(!response.ok)throw Error(result.error?.message||'Upload failed');return result}finally{controllers.current.delete(controller)}};
+ const submit=async()=>{
+  if(sending.current)return;
+  const incomplete=form.fields.filter(field=>{const value=answers[field.id];if(field.type==='instructions')return false;if(field.type==='file'&&Array.isArray(value)&&value.some(item=>typeof item!=='string'))return true;return field.required&&(value==null||typeof value==='string'&&!value.trim()||Array.isArray(value)&&!value.length||field.type==='checkbox'&&value!==true)});
+  if(incomplete.length){setError('Complete '+incomplete.map(field=>field.label||field.id).join(', ')+'.');document.getElementById('requester-field-'+incomplete[0].id)?.focus();return}if(editorStatus.pending||editorStatus.error){setError(editorStatus.pending?'Wait for description uploads to finish.':'Upload the description file again before submitting.');return}
+  sending.current=true;setBusy(true);setError('');const controller=new AbortController();controllers.current.add(controller);
+  try{const result=await requesterRequest(base+'/site/'+page.slug,{templateId:form.id,submissionKey:submissionKey.current,title,description,templateAnswers:answers},controller.signal);if(mounted.current)setReceipt(result)}catch(reason:any){if(controller.signal.aborted)return;if(reason.status===401)onSessionEnded();else if(mounted.current)setError(reason.message)}finally{controllers.current.delete(controller);sending.current=false;if(mounted.current)setBusy(false)}
+ };
+ if(receipt)return <><h1>Request received</h1><p>Your request {receipt.identifier} has been submitted.</p><Link to={site+'/pages/'+page.slug}>Back to {page.name}</Link></>;
+ return <form className="requester-form" onSubmit={event=>{event.preventDefault();void submit()}}><Link to={site+'/pages/'+page.slug}>{page.name}</Link><h1>{form.name}</h1>
+  {!form.fields.some(field=>field.property==='title')&&<label>Title *<input className="input" aria-label="Title" required maxLength={1000} value={title} onChange={event=>setTitle(event.target.value)}/></label>}
+  <div><label>Description</label><RichEditor dataOverride={isolatedEditorData} value={description} onChange={setDescription} placeholder="Describe your request…" uploadFile={uploadDescription} onUploadStatusChange={status=>{setEditorStatus(status);setError('')}}/></div>
+  {form.fields.map(field=>{if(field.type==='instructions')return <div key={field.id}><RichEditor dataOverride={isolatedEditorData} value={field.content||field.label} onChange={()=>{}} readOnly/></div>;const value=answers[field.id],options=field.options||[],select=field.type==='select'||['customerId','labelIds','priority'].includes(field.property||'');
+   return <div className="requester-field" key={field.id}><label htmlFor={'requester-field-'+field.id}>{field.label}{field.required?' *':''}</label>{field.description&&<small className="muted">{field.description}</small>}{field.type==='file'?<TemplateUpload key={requester.workspaceId+':'+requester.id+':'+form.id+':'+field.id} inputId={'requester-field-'+field.id} label={field.label} value={value} onChange={value=>answer(field,value)} baseUrl={base+'/files'} uploadUrl={uploadUrl(field.id)}/>:select?<select className="input" id={'requester-field-'+field.id} aria-label={field.label} value={field.property==='labelIds'?(value?.[0]??''):value??''} onChange={event=>{const selected=options.find(option=>String(option.value)===event.target.value)?.value;answer(field,field.property==='labelIds'?(selected===undefined?[]:[selected]):selected??'')}}><option value="">Select…</option>{options.map(option=><option key={String(option.value)} value={option.value}>{option.label}</option>)}</select>:field.type==='checkboxes'?<div id={'requester-field-'+field.id} tabIndex={-1} role="group" aria-label={field.label}>{options.map(option=><label className="requester-check" key={String(option.value)}><input type="checkbox" checked={(value||[]).includes(option.value)} onChange={event=>answer(field,event.target.checked?[...(value||[]),option.value]:(value||[]).filter((item:any)=>item!==option.value))}/>{option.label}</label>)}</div>:field.type==='checkbox'?<input id={'requester-field-'+field.id} aria-label={field.label} type="checkbox" checked={value===true} onChange={event=>answer(field,event.target.checked)}/>:field.type==='textarea'?<textarea className="input" id={'requester-field-'+field.id} aria-label={field.label} rows={4} value={value??''} onChange={event=>answer(field,event.target.value)}/>:<input className="input" id={'requester-field-'+field.id} aria-label={field.label} type={field.type==='number'?'number':field.type==='date'||field.property==='dueDate'?'date':'text'} step={field.type==='number'?'any':undefined} value={value??''} onChange={event=>answer(field,field.type==='number'&&event.target.value!==''?Number(event.target.value):event.target.value)}/>}</div>
+  })}{error&&<p role="alert">{error}</p>}<button className="button primary" disabled={busy||editorStatus.pending}>{busy?'Submitting…':'Submit request'}</button>
+ </form>;
+}

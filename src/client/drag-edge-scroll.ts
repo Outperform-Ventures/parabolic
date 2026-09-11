@@ -1,0 +1,10 @@
+import {useEffect,useRef,type RefObject,type DragEvent} from 'react';
+export function edgeScrollVelocity(pointer:number,start:number,end:number,edge=50,max=600,spill=0){if(pointer<start-spill||pointer>end+spill)return 0;const bounded=Math.max(start,Math.min(end,pointer));if(bounded<start+edge)return -max*Math.min(1,(start+edge-bounded)/edge);if(bounded>end-edge)return max*Math.min(1,(bounded-(end-edge))/edge);return 0;}
+/** Continue scrolling while a dragged card is held still near the viewport edge. */
+export function useDragEdgeScroll(ref:RefObject<HTMLElement|null>,horizontal:boolean,vertical:boolean){
+ const frame=useRef(0),point=useRef<{x:number;y:number}|null>(null),last=useRef(0);
+ const stop=()=>{if(frame.current)cancelAnimationFrame(frame.current);frame.current=0;point.current=null;last.current=0;};
+ useEffect(()=>{window.addEventListener('drop',stop,true);window.addEventListener('dragend',stop,true);window.addEventListener('blur',stop);return()=>{stop();window.removeEventListener('drop',stop,true);window.removeEventListener('dragend',stop,true);window.removeEventListener('blur',stop);};},[horizontal,vertical]);
+ const tick=(now:number)=>{const el=ref.current,p=point.current;if(!el||!p){stop();return;}const rect=el.getBoundingClientRect(),seconds=Math.min((now-(last.current||now-16))/1000,.05);last.current=now;if(horizontal)el.scrollLeft+=edgeScrollVelocity(p.x,rect.left,rect.right,50,1260,40)*seconds;if(vertical)el.scrollTop+=edgeScrollVelocity(p.y,rect.top,rect.bottom,50,1260,40)*seconds;frame.current=requestAnimationFrame(tick);};
+ return {onDragOver:(event:DragEvent)=>{if(!event.dataTransfer.types.includes('application/x-parabolic-issues')&&!event.dataTransfer.types.includes('text/issue-id'))return;point.current={x:event.clientX,y:event.clientY};if(!frame.current)frame.current=requestAnimationFrame(tick);},onDragLeave:(event:DragEvent)=>{const r=event.currentTarget.getBoundingClientRect(),spill=40;if(event.clientX>=r.left-spill&&event.clientX<=r.right+spill&&event.clientY>=r.top-spill&&event.clientY<=r.bottom+spill)return;if(!event.currentTarget.contains(event.relatedTarget as Node|null))stop();},stop};
+}

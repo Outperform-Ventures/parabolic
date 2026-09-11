@@ -1,0 +1,37 @@
+import {nextEmailWorkTime} from './notification-work-hours';
+import {isPriorityNotification} from '../shared/notification-priority';
+import {notificationDestination} from '../shared/notification-destination';
+import {createHash} from 'node:crypto';
+import sanitizeHtml from 'sanitize-html';
+import type {Repository,RecordEntity} from './repository';
+import {enqueueMail} from './mail';
+// Published Parabolic timing (2019-07-19); exact current timing remains a native comparison gate.
+export const notificationEmailDelays={urgent:30_000,mention:300_000,other:3_600_000};
+const destination=(n:RecordEntity)=>{const route=notificationDestination(n).route;try{const base=new URL(process.env.PARABOLIC_PUBLIC_URL||'');if(['http:','https:'].includes(base.protocol))return new URL(route,base).href;}catch{}return 'parabolic://'+route.slice(1);};
+const plain=(value:unknown)=>sanitizeHtml(String(value||''),{allowedTags:[],allowedAttributes:{}});
+export function initializeNotificationEmail(repo:Repository){repo.db.exec(`CREATE TABLE IF NOT EXISTS notification_email_receipts(workspace_id TEXT NOT NULL,notification_id TEXT NOT NULL,arrival TEXT NOT NULL,mail_id TEXT NOT NULL,PRIMARY KEY(notification_id,arrival)); CREATE INDEX IF NOT EXISTS notification_email_mail ON notification_email_receipts(mail_id)`);}
+function arrival(n:RecordEntity){return n.unsnoozedAt||n.movedToInboxAt||n.deliveredAt||n.createdAt;}
+function eligible(repo:Repository,n:RecordEntity,now:Date){
+ if(n.deletedAt||n.readAt||n.archivedAt||n.snoozedUntil&&Date.parse(n.snoozedUntil)>now.getTime()||n.type==='reminder'&&!n.deliveredAt)return false;
+ const actor=repo.actorForUser(n.userId,n.workspaceId),user=repo.raw('users',n.userId),p=user?.preferences?.notifications||{};
+ if(actor.role==='none'||!user?.email||p.email===false||!repo.canRead(actor,'notifications',n))return false;
+ const reasons=[n.type,...(n.reasons||[])].map(String),category=reasons.some(r=>/mention/i.test(r))?'mentions':reasons.some(r=>/comment|reply/i.test(r))?'comments':reasons.some(r=>/assign/i.test(r))?'assignments':reasons.some(r=>/reaction/i.test(r))?'reactions':reasons.some(r=>/document/i.test(r))?'documents':reasons.some(r=>/status|priority|blocking/i.test(r))?'status':reasons.some(r=>/viewIssue|subscrib/i.test(r))?'subscriptions':reasons.some(r=>/request/i.test(r))?'requests':reasons.some(r=>/triage/i.test(r))?'triage':reasons.some(r=>/dueDate|reminder|sla/i.test(r))?'deadlines':reasons.some(r=>/update/i.test(r))?'updates':'other';
+ if(p.emailPriorityOnly===true&&user.preferences?.inbox?.priorityEnabled!==false&&!isPriorityNotification(n,n.issueId?repo.raw('issues',n.issueId)||undefined:undefined,user.preferences?.inbox||{}))return false;
+ if(p.emailTypes?.[category]===false)return false;
+ return true;
+}
+export function assignedIssueEmailIsImmediate(repo:Repository,n:RecordEntity){const user=repo.raw('users',n.userId),issue=n.issueId?repo.raw('issues',n.issueId):null;return !!issue&&user?.preferences?.notifications?.emailUrgentImmediate!==false&&issue.assigneeId===n.userId&&(issue.priority===1||[n.type,...(n.reasons||[])].includes('slaBreached'));}
+export function notificationEmailDelay(repo:Repository,n:RecordEntity){const user=repo.raw('users',n.userId);if(user?.preferences?.notifications?.emailFormat==='immediate'||assignedIssueEmailIsImmediate(repo,n))return 0;const issue=n.issueId?repo.raw('issues',n.issueId):undefined;return issue?.priority===1?notificationEmailDelays.urgent:[n.type,...(n.reasons||[])].some(r=>/mention/i.test(r))?notificationEmailDelays.mention:notificationEmailDelays.other;}
+export function notificationEmailWorkTime(repo:Repository,n:RecordEntity,now:Date){const p=repo.raw('users',n.userId)?.preferences?.notifications||{};return p.emailFormat==='immediate'||p.emailDelayOutsideWorkHours===false||notificationEmailDelay(repo,n)<notificationEmailDelays.other?now:nextEmailWorkTime(repo,n,now);}
+export function notificationEmailContent(rows:RecordEntity[]){return {subject:rows.length===1?plain(rows[0].title||'Workspace update'):`${rows.length} unread updates in Parabolic`,text:rows.map(n=>plain(n.title||'Workspace update')+'\n'+plain(n.body||n.message||'')+'\n'+destination(n)).join('\n\n')+'\n\nOpen your Parabolic Inbox to review these updates.'};}
+export function queueNotificationEmails(repo:Repository,now=new Date()){
+ initializeNotificationEmail(repo);
+ for(const pending of repo.db.prepare("SELECT id FROM mail_outbox WHERE sent_at IS NULL AND last_error='Waiting for working hours'").all() as {id:string}[]){const content=refreshNotificationEmail(repo,pending.id,now);if(!content?.deferUntil)repo.db.prepare('UPDATE mail_outbox SET next_attempt=?,last_error=NULL WHERE id=?').run(now.toISOString(),pending.id);}
+ const candidates=(repo.db.prepare("SELECT n.data FROM entities n JOIN entities u ON u.kind='users' AND u.id=json_extract(n.data,'$.userId') AND coalesce(json_extract(u.data,'$.preferences.notifications.email'),1)=1 WHERE n.kind='notifications' AND n.deleted_at IS NULL AND json_extract(n.data,'$.readAt') IS NULL AND json_extract(n.data,'$.archivedAt') IS NULL AND NOT EXISTS(SELECT 1 FROM notification_email_receipts r WHERE r.notification_id=n.id AND r.arrival=coalesce(json_extract(n.data,'$.unsnoozedAt'),json_extract(n.data,'$.movedToInboxAt'),json_extract(n.data,'$.deliveredAt'),n.created_at)) ORDER BY n.created_at").all() as {data:string}[]).map(row=>JSON.parse(row.data) as RecordEntity);
+ const groups=new Map<string,RecordEntity[]>();for(const n of candidates){if(!eligible(repo,n,now)||Date.parse(arrival(n))+notificationEmailDelay(repo,n)>now.getTime()||notificationEmailWorkTime(repo,n,now)>now)continue;const key=n.workspaceId+':'+n.userId+(repo.raw('users',n.userId)?.preferences?.notifications?.emailFormat==='immediate'?':'+n.id:'');const group=groups.get(key)||[];group.push(n);groups.set(key,group);}
+ for(const [group,rows]of groups)repo.transaction(()=>{const current=rows.filter(n=>eligible(repo,n,now));if(!current.length)return;const user=repo.raw('users',current[0].userId)!;const digest=createHash('sha256').update(current.map(n=>n.id+':'+arrival(n)).join('|')).digest('hex');const mailId=enqueueMail(repo,{workspaceId:current[0].workspaceId,to:user.email,...notificationEmailContent(current),dedupeKey:'notification-email:'+group+':'+digest});for(const n of current)repo.db.prepare('INSERT OR IGNORE INTO notification_email_receipts VALUES(?,?,?,?)').run(n.workspaceId,n.id,arrival(n),mailId);});
+}
+/** Regenerate immediately before SMTP, omitting records read or made inaccessible while queued. */
+export function refreshNotificationEmail(repo:Repository,mailId:string,now=new Date()){
+ initializeNotificationEmail(repo);const records=repo.db.prepare('SELECT notification_id,arrival FROM notification_email_receipts WHERE mail_id=?').all(mailId) as {notification_id:string;arrival:string}[];const rows=records.map(r=>({r,n:repo.raw('notifications',r.notification_id)})).filter(({r,n})=>n&&arrival(n)===r.arrival&&eligible(repo,n,now)).map(({n})=>n!);if(!rows.length)return null;const ready=rows.filter(n=>notificationEmailWorkTime(repo,n,now)<=now);if(!ready.length)return {...notificationEmailContent(rows),deferUntil:new Date(Math.min(...rows.map(n=>notificationEmailWorkTime(repo,n,now).getTime()))).toISOString()};for(const n of rows)if(!ready.includes(n))repo.db.prepare('DELETE FROM notification_email_receipts WHERE notification_id=? AND arrival=? AND mail_id=?').run(n.id,arrival(n),mailId);return {...notificationEmailContent(ready),deferUntil:undefined};
+}

@@ -1,0 +1,25 @@
+.teams-table-page .page-header{gap:8px}
+.team-directory-search{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.team-directory-search input{border:0;background:transparent;color:var(--text);outline:none;font-size:12px;width:240px}
+.teams-table-page>.teams-table{flex:1;min-height:0;overflow:auto}
+.teams-table-columns,.teams-table-row{display:grid;grid-template-columns:minmax(180px,1fr) 96px 126px 146px 24px;align-items:center;gap:0;padding:0 20px}
+.teams-table-columns{height:32px;border-bottom:1px solid var(--border);color:var(--muted);font-size:12px;position:sticky;top:0;z-index:1;background:var(--bg)}
+.teams-table-columns button{text-align:left;color:inherit;font-size:inherit}
+.teams-table-row{height:48px;font-size:13px;color:var(--text-secondary)}
+.teams-table-row:hover{background:var(--hover)}
+.teams-table-name{display:flex;align-items:center;gap:12px;min-width:0;height:100%;font-weight:450}
+.teams-table-name>.muted{font-size:12px}
+.team-joined{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--border);border-radius:3px;padding:0 3px;font-size:12px;color:var(--muted)}
+.team-directory-members{display:flex;align-items:center;width:max-content;padding:6px 0}
+.team-directory-members .avatar+.avatar{margin-left:-5px}
+.team-directory-projects{display:flex;align-items:center;gap:6px;color:var(--muted);width:max-content;padding:6px 0;font-size:12px}
+.team-row-menu{opacity:0}.teams-table-row:hover .team-row-menu,.team-row-menu:focus-visible{opacity:1}
+.team-directory-display{display:grid;gap:10px;width:250px;padding:10px}
+.team-directory-order{display:grid;grid-template-columns:1fr 112px 30px;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.team-directory-order select,.team-directory-order button,.team-directory-properties button{height:28px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);font:inherit}
+.team-directory-order button{display:grid;place-items:center;padding:0}
+.team-directory-properties{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.team-directory-properties button{padding:0 8px;text-align:left;color:var(--muted)}
+.team-directory-properties button[aria-pressed=true]{border-color:var(--accent);color:var(--text);background:var(--hover)}
+.teams-table-row time{font-size:12px;color:var(--muted)}
+@media(max-width:800px){.teams-table-columns,.teams-table-row{grid-template-columns:minmax(120px,1fr) 80px 70px 90px 24px;padding-inline:12px}}

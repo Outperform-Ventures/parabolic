@@ -1,0 +1,109 @@
+.customer-editor{width:580px;border-radius:20px;background:var(--panel);overflow:hidden}
+.modal-backdrop:has(>.customer-editor){padding-top:17vh}
+.customer-editor header{height:52px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);font-size:15px}
+.customer-editor button{border:0;background:transparent;color:var(--text);cursor:pointer}
+.customer-editor header button{color:var(--muted)}
+.customer-editor-body{padding:20px}
+.customer-editor-logo{display:flex;align-items:center;gap:16px;margin-bottom:28px;font-size:13px}
+.customer-editor-logo>button{width:48px;height:48px;border:1px solid var(--border);border-radius:6px;padding:3px;display:flex;align-items:center;justify-content:center}
+.customer-editor-logo img{width:100%;height:100%;object-fit:cover;border-radius:4px}
+.customer-editor-logo p{color:var(--muted);margin:4px 0;font-size:13px}
+.customer-editor-logo div>button{font-size:12px;color:var(--muted);padding:0}
+.customer-editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px 16px}
+.customer-editor label{display:flex;flex-direction:column;gap:6px;font-size:13px;min-width:0}
+.customer-editor input:not([type=file]),.customer-editor select{width:100%;height:32px;min-width:0;padding:0 12px;border:1px solid var(--border);border-radius:7px;background:transparent;color:var(--text);font:inherit;font-size:13px;outline:none}
+.customer-editor input:focus,.customer-editor select:focus{border-color:var(--accent)}
+.customer-editor-domains{margin-top:28px;font-size:13px}
+.customer-editor-domains>div:first-child{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.customer-editor-domains button{font-size:12px}
+.customer-domain-row{display:flex;gap:6px;margin-top:6px}
+.customer-editor footer{display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:12px;border-top:1px solid var(--border);margin-top:12px}
+.customer-editor footer button{height:28px;border-radius:999px;padding:0 12px;font-size:12px;font-weight:500;background:var(--hover)}
+.customer-editor footer button[type=submit]{background:var(--accent);color:white}
+.customer-editor button:disabled{opacity:.5;cursor:default}
+.modal-backdrop:has(>.customer-editor){padding-top:calc(39px + round(nearest,13vh,1px))}
+.customer-editor header{height:53px;padding:12px 16px 12px 24px}
+.customer-editor header button{width:28px;height:28px;display:flex;align-items:center;justify-content:center;padding:0 2px}
+.customer-editor-body{padding:16px 20px 32px}
+.customer-editor-logo{height:48px;margin-bottom:24px}
+.customer-editor-grid{row-gap:24px}
+.customer-editor label{gap:4px}
+.customer-editor label>span,.customer-editor-domains>div:first-child>span{height:24px;display:flex;align-items:center;font-size:13px;font-weight:500}
+.customer-editor-grid label:nth-child(-n+4){padding-bottom:1px}
+.customer-editor input:not([type=file]),.customer-editor select{height:30px;padding:6px 12px;border-radius:8px;line-height:normal}
+.customer-editor-grid label:nth-child(n+5) input{height:32px}
+.customer-editor-domains{margin-top:24px}
+.customer-editor-domains>div:first-child{height:28px;margin-bottom:0}
+.customer-domain-row{margin-top:0}
+.customer-domain-row+.customer-domain-row{margin-top:8px}
+.customer-editor-domains>div:first-child>button{height:24px;padding:0 8px;font-weight:500}
+.customer-editor footer{height:53px;margin-top:0;padding:12px}
+.customer-editor footer button{padding:0 10px;border:1px solid transparent}
+.customer-revenue-field{position:relative}
+.customer-revenue-field:after{content:'$';position:absolute;bottom:7px;left:12px;font-size:13px;font-weight:400}
+.customer-editor .customer-revenue-field input{padding-left:25px}
+:root:not([data-theme]) .customer-editor input:not([type=file]),:root[data-theme=dark] .customer-editor input:not([type=file]),:root:not([data-theme]) .customer-editor select,:root[data-theme=dark] .customer-editor select{background:lch(9.232 .85 272);border-color:lch(20.032 1.93 272)}
+:root:not([data-theme]) .customer-editor footer button,:root[data-theme=dark] .customer-editor footer button{background:lch(13.861 1.139 272)}
+:root:not([data-theme]) .customer-editor footer button[type=submit],:root[data-theme=dark] .customer-editor footer button[type=submit]{background:lch(47.918 59.303 288.421)}
+:root .customer-editor input:not([type=file]):focus,:root .customer-editor select:focus{border-color:var(--accent)}
+.customer-editor .customer-status-trigger{height:30px;width:100%;display:flex;align-items:center;gap:8px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:lch(9.232 .85 272);font-size:13px;text-align:left}
+.customer-status-trigger>svg{margin-left:auto;color:var(--muted)}
+.customer-status-square{display:inline-block;flex-shrink:0;width:8px;height:8px;border-radius:1px}
+.customer-status-menu{z-index:150;padding:4px;border:1px solid var(--popover-border);border-radius:10px;background:var(--popover);box-shadow:var(--shadow)}
+.customer-status-menu>button{width:100%;height:32px;display:flex;align-items:center;gap:8px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--text);font-size:13px;text-align:left;outline:0}
+.customer-status-menu>button.active{background:var(--hover)}
+.customer-status-menu>button>span:nth-child(2){flex:1}
+:root[data-theme=light] .customer-editor .customer-status-trigger{background:var(--panel)}
+.customer-status-menu{max-height:calc(100vh - 16px);overflow-y:auto;overscroll-behavior:contain}
+.customer-owner-select,.customer-owner-select>.dropdown-trigger{display:flex;width:100%;min-width:0}
+.customer-editor .customer-owner-trigger{height:30px;width:100%;display:flex;align-items:center;gap:8px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:transparent;font-size:12px;font-weight:500;text-align:left}
+.customer-owner-trigger>span:nth-child(2){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.customer-owner-trigger>svg{color:var(--muted)}
+.menu:has(>.customer-owner-options){width:262px;min-width:0}
+.customer-owner-options .menu-item{height:32px;gap:8px;font-size:13px}
+.customer-owner-options .menu-item>span:not(.avatar){flex:1}
+.customer-owner-options kbd{font-size:11px;color:var(--muted);background:transparent;border:0}
+
+.customer-status-trigger>.customer-choice-label,.customer-status-menu>button>.customer-choice-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+
+/* Native customer select measurements, batch 107. */
+.customer-status-menu{padding:4px 0;border-radius:12px;box-shadow:lch(0 0 0 / .125) 0px 3px 8px 0px,lch(0 0 0 / .125) 0px 2px 5px 0px,lch(0 0 0 / .125) 0px 1px 1px 0px}
+:root:not([data-theme=light]) .customer-status-menu{background:lch(16.433 1.3 272);border-color:lch(27.233 2.38 272);color:lch(91.554 1.65 272)}
+.customer-status-menu>button{position:relative;padding:0 35px 0 12px;border-radius:0;font-weight:400;line-height:19.5px;color:inherit}
+.customer-status-menu>button>svg.customer-choice-check{position:absolute;right:12px}
+
+.customer-status-menu>button.active{background:transparent}
+.customer-status-menu>button::before{content:"";position:absolute;inset:0 4px;border-radius:8px;pointer-events:none;z-index:-1}
+.customer-status-menu>button{isolation:isolate}
+.customer-status-menu>button.active::before{background:var(--hover)}
+
+:root:not([data-theme=light]) .customer-status-menu>button.active::before{background:lch(25.69 1.975 272)}
+.customer-choice-check{fill:var(--muted)}
+:root:not([data-theme=light]) .customer-choice-check{fill:lch(66.215 1.65 272)}
+/* Native editor control surfaces and hit areas, measured in batch 101. */
+.customer-editor .customer-owner-trigger{position:relative;padding:0 28px 0 10px}
+.customer-editor .customer-owner-trigger>svg{position:absolute;right:10px}
+:root:not([data-theme=light]) .customer-editor .customer-owner-trigger{background:lch(9.232 .85 272);border-color:lch(20.032 1.93 272)}
+.customer-editor .customer-status-trigger{position:relative;padding:1px 28px 1px 10px;border-color:transparent}
+.customer-editor .customer-status-trigger>svg{position:absolute;right:10px}
+:root .customer-editor .customer-editor-grid>label:nth-last-child(-n+2)>input{background:transparent;padding-right:28px}
+.customer-editor>form>header>button,.customer-editor-domains>div:first-child>button{border:1px solid transparent;border-radius:9999px}
+
+.customer-editor-glyph{fill:var(--muted);flex-shrink:0}
+:root:not([data-theme=light]) .customer-editor-glyph{fill:lch(63.304 1.425 272)}
+
+.customer-logo-frame{position:relative;width:48px;height:48px;padding:4px;border-radius:5px;flex-shrink:0}
+.customer-logo-frame>button:first-child{display:flex;width:40px;height:40px;padding:0;border:0;border-radius:3px;align-items:center;justify-content:center;background:var(--panel)}
+.customer-logo-frame img{width:40px;height:40px;object-fit:cover;border-radius:3px}
+.customer-logo-edit{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:3px;background:rgba(0,0,0,.45);opacity:0;pointer-events:none}
+.customer-logo-edit svg{fill:lch(100 5 288.421)}
+.customer-editor-logo .customer-logo-remove{position:absolute;top:-8px;right:-8px;width:16px;height:16px;padding:0;border:0;border-radius:100%;display:flex;align-items:center;justify-content:center;opacity:0;background:var(--panel)}
+.customer-logo-remove .customer-editor-glyph{width:10px;height:10px;fill:white}
+:root:not([data-theme=light]) .customer-logo-frame>button:first-child{background:lch(9.232 .85 272)}
+:root:not([data-theme=light]) .customer-logo-remove{background:lch(6.307 .85 272)}
+:root .customer-logo-remove .customer-editor-glyph{fill:white}
+.customer-logo-frame:hover .customer-logo-edit,.customer-logo-frame:focus-within .customer-logo-edit,.customer-logo-frame:hover .customer-logo-remove,.customer-logo-frame:focus-within .customer-logo-remove{opacity:1}
+.customer-domain-row{gap:8px;align-items:center}
+.customer-domain-row>input{flex:1;min-width:0}
+.customer-domain-row>button{width:24px;height:24px;flex:0 0 24px;display:flex;align-items:center;justify-content:center;padding:0 2px;border:1px solid transparent;border-radius:9999px;background:transparent}
+:root:not([data-theme=light]) .customer-domain-row>button{color:lch(63.304 1.425 272)}

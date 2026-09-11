@@ -1,0 +1,128 @@
+.archive-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 24px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.archive-columns,
+.archive-row {
+  display: grid;
+  grid-template-columns: 20px minmax(160px, 1fr) 140px 76px;
+  align-items: center;
+  gap: 14px;
+  padding: 0 24px;
+}
+.archive-columns {
+  height: 34px;
+  font-size: 0.6875rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.archive-columns button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6875rem;
+}
+.archive-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+.archive-row {
+  box-sizing: border-box;
+  font-size: 0.8125rem;
+  border-bottom: 1px solid var(--border);
+  cursor: default;
+}
+.archive-row:hover {
+  background: var(--panel);
+}
+.archive-row.selected {
+  background: color-mix(in srgb, var(--accent), transparent 87%);
+}
+.archive-row.focused {
+  box-shadow: inset 2px 0 var(--accent);
+}
+.archive-item-name {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  text-align: left;
+}
+.archive-item-name strong {
+  font-weight: 450;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.archive-item-name > .muted,
+.archive-row time {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.archive-row input,
+.archive-columns input {
+  accent-color: var(--accent);
+}
+.archive-row .button {
+  height: 27px;
+  font-size: 0.75rem;
+}
+.archive-error {
+  margin: 8px 24px;
+}
+.archive-loading {
+  padding: 32px;
+  text-align: center;
+}
+@media (max-width: 760px) {
+  .archive-columns,
+  .archive-row {
+    padding: 0 12px;
+    gap: 8px;
+    grid-template-columns: 20px minmax(120px, 1fr) 80px 62px;
+  }
+  .archive-item-name > .muted {
+    display: none;
+  }
+  .archive-toolbar {
+    padding: 0 12px;
+  }
+}
+.archive-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+.archive-native-tabs {
+  overflow-x: auto;
+  flex: none;
+}
+.archive-native-tabs > a {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.archive-native-tabs > a.active {
+  background: var(--selected);
+  color: var(--text);
+}
+.archive-native-filter {
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border);
+}

@@ -1,0 +1,5 @@
+.issue-focus-drag-preview{position:fixed;z-index:10000;pointer-events:none;display:flex;align-items:center;gap:8px;max-width:360px;height:46px;padding:0 12px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);font-size:13px;box-shadow:0 5px 16px #0002;white-space:nowrap;overflow:hidden}
+.issue-focus-drag-preview>span:last-child{overflow:hidden;text-overflow:ellipsis}
+.issue-focus-drag-id{color:var(--muted)}
+.issue-focus-drag-message{position:fixed;bottom:58px;left:50%;transform:translateX(-50%);z-index:10000;pointer-events:none;background:var(--surface);border-radius:8px;padding:12px;color:var(--text);font-size:12px;box-shadow:0 3px 12px #0003}
+.issue-focus-drag-target{position:fixed;z-index:9999;pointer-events:none;box-sizing:border-box;background:rgb(0 0 0 / 38%);border:1px solid color-mix(in srgb,var(--accent) 65%,transparent);border-radius:8px}

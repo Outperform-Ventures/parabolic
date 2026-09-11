@@ -1,0 +1,17 @@
+.entity-icon-menu.reaction-emoji-menu{width:274px;padding:0;border-radius:8px;border-color:var(--popover-border);background:var(--popover);box-shadow:0 3px 8px #0002,0 2px 5px #0002,0 1px 1px #0002}
+.reaction-emoji-search{height:37px;padding:4px 5px;border-bottom:1px solid var(--border)}
+.reaction-emoji-search>div{position:relative;height:28px}
+.reaction-emoji-search input{display:block;width:100%;height:28px;padding:6px 28px 6px 10px;border:0;border-radius:8px;background:var(--popover);color:var(--text);font-size:13px;font-weight:400;line-height:normal;outline:none}
+.reaction-emoji-search input::placeholder{color:var(--muted)}
+.reaction-emoji-clear{position:absolute;right:8px;top:3px;display:flex;align-items:center;justify-content:center;width:12px;height:24px;padding:0;border:0;background:none;color:var(--text);cursor:pointer}
+:root:not([data-theme]) .reaction-emoji-clear,:root[data-theme=dark] .reaction-emoji-clear{color:#fff}
+.reaction-emoji-clear path{fill:var(--muted)}
+.reaction-emoji-scroll{overflow:auto;padding:0 10px 8px;scrollbar-width:none}
+.reaction-emoji-scroll::-webkit-scrollbar{display:none}
+.reaction-emoji-heading{display:flex;align-items:flex-end;padding:0 6px;font-size:12px;line-height:22px;font-weight:500;color:var(--muted)}
+.reaction-emoji-row{display:grid;grid-template-columns:repeat(9,28px);gap:0}
+.reaction-emoji-row button{display:flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--text);font-size:20px;line-height:20px;font-weight:400;cursor:pointer}
+.reaction-emoji-row button.active,.reaction-emoji-row button:hover{background:var(--emoji-highlight,var(--hover))}
+.reaction-emoji-glyph{display:flex;align-items:center;justify-content:center;width:20px;height:20px;font-size:17px;line-height:20px;transform:translateY(-.5px);object-fit:contain}
+.reaction-emoji-empty{display:flex;align-items:flex-end;height:28px;padding:0 6px;font-size:12px;font-weight:500;line-height:22px;color:var(--muted)}
+:root:not([data-theme]) .reaction-emoji-menu,:root[data-theme=dark] .reaction-emoji-menu{--popover:lch(12.72 .85 272);--popover-border:lch(21.36 1.93 272);--border:lch(17.04 1.93 272);--text:lch(91.178 1.425 272);--muted:lch(64.714 1.425 272);box-shadow:0 3px 8px lch(0 0 0 / .125),0 2px 5px lch(0 0 0 / .125),0 1px 1px lch(0 0 0 / .125)}

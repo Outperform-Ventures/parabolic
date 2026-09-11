@@ -1,0 +1,76 @@
+.issue-description-history{width:1020px;height:80vh;background:var(--popover);border-color:var(--popover-border);display:flex;flex-direction:column;overflow:hidden}
+.modal-backdrop:has(>.issue-description-history){padding-top:calc(20vh / 3)}
+.issue-description-history .modal-header{height:48px;min-height:48px;padding:20px 16px 12px 20px}
+.issue-description-history .modal-header h2{font-size:13px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.issue-description-history .modal-header .icon-button{width:28px;height:28px;flex-shrink:0}
+.description-history-layout{display:grid;grid-template-columns:minmax(0,1fr) 23%;margin:0 16px 16px;border:1px solid var(--popover-border);border-radius:8px;flex:1;min-height:0;overflow:hidden}
+.description-history-preview{position:relative;padding:16px 24px 88px;overflow:auto;min-width:0}
+.description-history-date{font-size:12px;line-height:20px;color:var(--muted);background:var(--hover);border-radius:5px;width:fit-content;padding:0 8px;margin-bottom:16px}
+.description-history-date strong{font-weight:500;color:var(--text)}
+.description-history-preview .rich-editor{font-size:15px;line-height:24px}
+.description-history-restore{position:sticky;top:100%;margin-top:32px;display:flex;flex-direction:column;align-items:center}
+.description-history-restore .button{height:24px;min-height:24px;padding:0 8px;border-radius:999px;font-size:12px}
+.description-history-versions{border-left:1px solid var(--popover-border);padding:6px;overflow:auto}
+.description-history-day{font-size:12px;color:var(--muted);padding:6px 8px}
+.description-history-version{display:flex;flex-direction:column;width:100%;text-align:left;padding:8px;gap:6px;border:1px solid transparent;border-radius:6px;color:var(--text);background:transparent;font-size:12px;min-height:59px}
+.description-history-version[aria-pressed=true]{background:var(--hover)}
+.description-history-version:hover{background:var(--hover)}
+.description-history-version>span:first-child{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.description-history-version strong{font-weight:500}.description-history-version span span{color:var(--muted)}
+.description-history-version small{margin-left:auto;font-size:11px;border:1px solid var(--popover-border);border-radius:3px;padding:0 4px}
+.description-history-author{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.description-history-preview{display:flex;flex-direction:column;padding-bottom:20px}.description-history-restore{position:sticky;bottom:0;top:auto;margin-top:auto;padding-top:32px;padding-bottom:8px;flex-shrink:0}.description-history-date{flex-shrink:0}
+.description-history-version[aria-pressed=true]{background:lch(14.52 1.3 272)}
+.description-history-version:focus-visible{outline:1px solid var(--accent);outline-offset:0}
+/* Native history content is 80vh tall inside the dialog's two border pixels. */
+.issue-description-history{height:calc(80vh + 2px)}
+.modal-backdrop:has(>.issue-description-history){padding-top:calc((20vh - 2px) / 3)}
+.description-history-preview .tiptap{line-height:24px}
+.description-history-version{border:0;font-size:13.3333px;line-height:normal;min-height:59px}
+.description-history-version>span:first-child{height:19px;flex-shrink:0;font-size:12px;line-height:normal}
+.description-history-version small{font-size:12px;line-height:normal;font-weight:500;padding:1px 6px;height:19px}
+.description-history-author{font-size:13px;line-height:normal;font-weight:450;gap:8px;height:18px}
+/* Native flex sizing lets the 300px version pane shrink beside the full-width preview. */
+.description-history-layout{display:flex}
+.description-history-preview{width:100%;flex:1 1 auto;display:block;padding:0;overflow:hidden}
+.description-history-versions{width:300px;flex:0 1 auto;min-width:0;padding:8px 6px}
+.description-history-scroll{position:absolute;inset:0;overflow:auto;padding:52px 16px 84px 24px}
+.description-history-date{position:absolute;top:16px;left:16px;margin:0}
+.description-history-restore{position:absolute;inset:auto 0 0;margin:0;padding:10px 0 20px;min-height:70px;pointer-events:none}
+.description-history-restore-capsule{padding:8px;border-radius:999px;background:var(--popover);box-shadow:0 0 0 1px var(--popover-border),0 4px 12px #0003;pointer-events:auto;display:flex}
+.description-history-restore [role=alert]{pointer-events:auto;background:var(--popover);color:var(--danger);padding:8px}
+.description-history-day{line-height:18px;padding:0 8px;margin-bottom:8px}
+.description-history-version+.description-history-day{margin-top:20px}
+/* Keep horizontal list insets out of the flex item's shrink calculation. */
+.description-history-versions{padding:8px 0}
+.description-history-versions>.description-history-version{width:calc(100% - 12px);margin-left:6px;margin-right:6px}
+.description-history-versions>.description-history-day{margin-left:6px;margin-right:6px}
+.description-history-restore .button{background:lch(47.918 59.303 288.421);color:lch(100 5 288.421);box-shadow:0 .5px 1px 1px lch(0 0 0 / .3)}
+.description-history-restore .button:disabled{opacity:.6}
+.issue-description-history{--history-surface:var(--popover);--history-border:var(--popover-border);--history-inner-border:var(--popover-border);--history-text:var(--text);--history-muted:var(--muted);--history-strong:var(--text);--history-selected:var(--hover);--history-capsule-bg:var(--popover);--history-capsule-border:var(--popover-border);--history-badge-border:var(--popover-border)}
+:root:not([data-theme]) .issue-description-history,:root[data-theme=dark] .issue-description-history{--history-surface:lch(12.72 .85 272);--history-border:lch(21.36 1.93 272);--history-inner-border:lch(17.04 1.93 272);--history-text:lch(91.178 1.425 272);--history-muted:lch(64.714 1.425 272);--history-strong:lch(100 0 272);--history-selected:lch(14.52 1.3 272);--history-capsule-bg:lch(13.507 1.3 272);--history-capsule-border:lch(25.072 2.38 272);--history-badge-border:lch(23.52 1.93 272)}
+/* Measured native history surfaces and controls. */
+.issue-description-history{--history-shadow:0 4px 40px lch(0 0 0 / .1),0 3px 20px lch(0 0 0 / .125),0 3px 12px lch(0 0 0 / .125),0 2px 8px lch(0 0 0 / .125),0 1px 1px lch(0 0 0 / .125);background:var(--history-surface);border-color:var(--history-border);box-shadow:var(--history-shadow);flex:0 0 auto}
+.modal-backdrop:has(>.issue-description-history){flex-direction:column;align-items:center;justify-content:initial;padding:0 24px}
+.modal-backdrop:has(>.issue-description-history)::before,.modal-backdrop:has(>.issue-description-history)::after{content:"";width:0;flex:1 1 0}
+.modal-backdrop:has(>.issue-description-history)::after{flex-grow:2}
+.issue-description-history .modal-header h2{color:var(--history-muted)}
+.issue-description-history .modal-header h2>span{color:var(--history-strong)}
+.issue-description-history .modal-header .icon-button{position:relative;top:-4px;border:1px solid transparent;border-radius:9999px;padding:0 2px;color:var(--history-text)}
+.issue-description-history .modal-header .icon-button>svg{width:14px;height:14px}
+.description-history-layout,.description-history-versions{border-color:var(--history-inner-border)}
+.description-history-layout.empty{display:flex;align-items:center;justify-content:center}
+.description-history-empty{color:var(--history-muted);font-size:13px;outline:none}
+.description-history-preview .tiptap{color:var(--history-text);font-weight:450}
+.description-history-date{display:flex;align-items:center;gap:6px;height:23px;padding:3px 7px;border:1px solid var(--history-border);border-radius:8px;background:var(--history-selected);font-weight:450;line-height:normal;color:var(--history-muted)}
+.description-history-date strong{color:var(--history-strong)}
+.description-history-restore-capsule{height:40px;align-items:center;padding:6px 6px 6px 10px;border:1px solid var(--history-capsule-border);border-radius:9999px;background:var(--history-capsule-bg);box-shadow:var(--history-shadow)}
+.description-history-restore-capsule>.button{margin-right:1px;line-height:normal;border-radius:9999px}
+.description-history-versions>.description-history-day{font-weight:450;line-height:normal;height:15px;padding:0;margin:5px 6px 6px 14px;color:var(--history-muted)}
+.description-history-version+.description-history-day{margin-top:25px}
+.description-history-version>span:first-child{gap:6px}
+.description-history-version>span:first-child strong{color:var(--history-strong)}
+.description-history-version>span:first-child>span,.description-history-author{color:var(--history-muted);font-weight:450}
+.description-history-version small{background:var(--history-selected);border-color:var(--history-badge-border);color:var(--history-strong)}
+
+.description-history-version[aria-pressed=true]{background:var(--history-selected)}

@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {nestedIssueRows} from '../../src/client/issue-nesting';
+const i=(id:string,parentId?:string)=>({id,parentId}) as any;
+test('stable hierarchy orders parents before children and collapses descendants',()=>{const rows=[i('leaf','child'),i('sibling'),i('child','parent'),i('parent')];assert.deepEqual(nestedIssueRows(rows).map(r=>[r.issue.id,r.depth]),[['sibling',0],['parent',0],['child',1],['leaf',2]]);assert.deepEqual(nestedIssueRows(rows,['parent']).map(r=>r.issue.id),['sibling','parent']);});
+test('filtered parents and corrupt cycles do not lose visible issues',()=>{assert.deepEqual(nestedIssueRows([i('child','missing'),i('leaf','child')]).map(r=>r.depth),[0,1]);assert.equal(new Set(nestedIssueRows([i('a','b'),i('b','a')]).map(r=>r.issue.id)).size,2);});

@@ -1,0 +1,181 @@
+{
+  "decidedAt": "2026-09-05",
+  "default": "Keep",
+  "confirmedF22": "MCP access only; no hosted AI",
+  "families": {
+    "F20": {
+      "decision": "Keep",
+      "notes": "Critical: include complete API, webhooks and SDK."
+    },
+    "F22": {
+      "decision": "Partial",
+      "notes": "Confirmed: keep MCP access for external tools; omit hosted agent sessions and AI."
+    },
+    "F23": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity."
+    },
+    "F21": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity."
+    },
+    "F24": {
+      "decision": "Drop",
+      "notes": "Exclude onboarding and adoption guidance."
+    },
+    "F14": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity. English-only scope confirmed September 7, 2026: exclude VoiceOver and all multilingual IME acceptance. Retain ordinary English keyboard use, English dictation and U.S. dead-key behavior."
+    },
+    "F13": {
+      "decision": "Drop",
+      "notes": "Exclude all AI agents and coding workflows."
+    },
+    "F18": {
+      "decision": "Scaffolding only",
+      "notes": "Keep provider/connector scaffolding; defer every concrete integration."
+    },
+    "F02": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity."
+    },
+    "F19": {
+      "decision": "Drop",
+      "notes": "Exclude imports, exports and migration."
+    },
+    "F03": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity."
+    },
+    "F16": {
+      "decision": "Partial",
+      "notes": "Basic login methods and necessary authorization only; no enterprise SAML/SCIM."
+    },
+    "F09": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity."
+    },
+    "F17": {
+      "decision": "Drop",
+      "notes": "Internal tool: exclude billing, plans and legal surfaces."
+    },
+    "F05": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity."
+    },
+    "F15": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity."
+    },
+    "F04": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity."
+    },
+    "F12": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity."
+    },
+    "F08": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity."
+    },
+    "F11": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity."
+    },
+    "F01": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity."
+    },
+    "F06": {
+      "decision": "Partial",
+      "notes": "Keep inbox and notifications; exclude Pulse."
+    },
+    "F10": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity."
+    },
+    "F26": {
+      "decision": "Drop",
+      "notes": "Exclude releases."
+    },
+    "F07": {
+      "decision": "Keep",
+      "notes": "Keep by default; target parity."
+    },
+    "F25": {
+      "decision": "Drop",
+      "notes": "Exclude product methodology reference."
+    }
+  },
+  "capabilityOverrides": {
+    "F01-008": {
+      "decision": "Deferred",
+      "decidedAt": "2026-09-07T20:41:48.528Z",
+      "notes": "User explicitly skipped this remaining gap. Preserve delivered behavior and historical evidence; do not count as complete."
+    },
+    "F01-004": {
+      "decision": "Deferred",
+      "decidedAt": "2026-09-07T20:41:48.528Z",
+      "notes": "User explicitly skipped this remaining gap. Preserve delivered behavior and historical evidence; do not count as complete."
+    },
+    "F06-007": {
+      "decision": "Deferred",
+      "decidedAt": "2026-09-07T20:41:48.528Z",
+      "notes": "User explicitly skipped this remaining gap. Preserve delivered behavior and historical evidence; do not count as complete."
+    },
+    "F06-009": {
+      "decision": "Deferred",
+      "decidedAt": "2026-09-07T20:41:48.528Z",
+      "notes": "User explicitly skipped this remaining gap. Preserve delivered behavior and historical evidence; do not count as complete."
+    },
+    "F03-009": {
+      "decision": "Deferred",
+      "decidedAt": "2026-09-07T20:41:48.528Z",
+      "notes": "User explicitly skipped this remaining gap. Preserve delivered behavior and historical evidence; do not count as complete."
+    },
+    "F02-006": {
+      "decision": "Deferred",
+      "decidedAt": "2026-09-07T20:41:48.528Z",
+      "notes": "User explicitly skipped this remaining gap. Preserve delivered behavior and historical evidence; do not count as complete."
+    },
+    "F14-012": {
+      "decision": "Deferred",
+      "decidedAt": "2026-09-07T20:41:48.528Z",
+      "notes": "User explicitly skipped this remaining gap. Preserve delivered behavior and historical evidence; do not count as complete."
+    },
+    "F14-008": {
+      "decision": "Deferred",
+      "decidedAt": "2026-09-07T20:41:48.528Z",
+      "notes": "User explicitly skipped this remaining gap. Preserve delivered behavior and historical evidence; do not count as complete."
+    },
+    "F14-010": {
+      "decision": "Deferred",
+      "decidedAt": "2026-09-07T20:41:48.528Z",
+      "notes": "User explicitly skipped this remaining gap. Preserve delivered behavior and historical evidence; do not count as complete."
+    },
+    "F11-002": {
+      "decision": "Deferred",
+      "decidedAt": "2026-09-07T20:41:48.528Z",
+      "notes": "User explicitly skipped this remaining gap. Preserve delivered behavior and historical evidence; do not count as complete."
+    }
+  },
+  "currentWork": {
+    "startedAt": "2026-09-07T20:41:48.528Z",
+    "status": "In progress",
+    "title": "Recreate real Parabolic data and match visual parity",
+    "note": "All ten previously remaining feature gaps are deferred by user instruction, not completed. Zero retained gaps from that old list remain active. Real Parabolic data recreation and section-by-section visual parity are new unfinished work; no overall completion claim or percentage follows.",
+    "deferredGapIds": [
+      "F01-008",
+      "F01-004",
+      "F06-007",
+      "F06-009",
+      "F03-009",
+      "F02-006",
+      "F14-012",
+      "F14-008",
+      "F14-010",
+      "F11-002"
+    ]
+  }
+}

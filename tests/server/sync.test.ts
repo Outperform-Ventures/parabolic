@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createApp } from '../../src/server/app.ts';
+
+test('bounded bootstrap, stable sync pagination, permission revisions and workspace-safe outbox',async()=>{
+  const app=createApp({databasePath:':memory:',port:0});const {url}=await app.start();let cookie='';
+  const request=async(path:string,method='GET',data?:any,override?:string)=>{const response=await fetch(url+path,{method,headers:{cookie:override??cookie,'content-type':'application/json'},...(data?{body:JSON.stringify(data)}:{})});const text=await response.text();return{response,status:response.status,body:text?JSON.parse(text):null};};
+  try{const setup=await request('/auth/setup','POST',{email:'owner@example.com',name:'Owner',password:'owner-secure-password'});cookie=setup.response.headers.get('set-cookie')!.split(';')[0];const initial=(await request('/api/v1/state')).body;assert.equal(initial.issues.length,0);assert.equal(initial.projects.length,0);
+    const actor={userId:initial.user.id,workspaceId:initial.workspaceId,role:'owner',scopes:['read','write','admin']},teamId=initial.teams[0].id;app.repo.transaction(()=>{for(let i=0;i<1200;i++)app.repo.create(actor,'issues',{title:`Issue ${i}`,teamId});});
+    const bootstrap=await request('/api/v1/sync/bootstrap');assert.equal(bootstrap.body.state.issues.length,500);assert.ok(bootstrap.body.cursors.issues);assert.equal(bootstrap.response.headers.get('content-encoding'),'gzip');let after=bootstrap.body.cursors.issues;const ids=new Set(bootstrap.body.state.issues.map((issue:any)=>issue.id));while(after){const page=(await request('/api/v1/sync/issues?first=500&after='+encodeURIComponent(after))).body;for(const issue of page.nodes){assert.ok(!ids.has(issue.id));ids.add(issue.id);}after=page.pageInfo.hasNextPage?page.pageInfo.endCursor:null;}assert.equal(ids.size,1200);
+    const invitation=(await request('/api/v1/invitations','POST',{email:'member@example.com'})).body;const join=await request('/auth/join','POST',{token:invitation.token,password:'member-secure-password'});const memberCookie=join.response.headers.get('set-cookie')!.split(';')[0];const memberBootstrap=(await request('/api/v1/sync/bootstrap','GET',undefined,memberCookie)).body;assert.equal(memberBootstrap.state.issues.length,500);
+    await request(`/api/v1/teams/${teamId}`,'PATCH',{private:true});const changes=(await request(`/api/v1/sync/changes?after=${memberBootstrap.seq}&accessRevision=${memberBootstrap.accessRevision}`,'GET',undefined,memberCookie)).body;assert.equal(changes.resetRequired,true);assert.ok(changes.accessRevision>memberBootstrap.accessRevision);assert.equal((await request('/api/v1/sync/bootstrap','GET',undefined,memberCookie)).body.state.issues.length,0);
+    const second=await request('/auth/workspaces','POST',{name:'Different scope'});assert.equal(second.status,201);assert.equal((await request('/api/v1/batch','POST',{workspaceId:initial.workspaceId,operations:[{kind:'issues',action:'create',data:{title:'Wrong workspace',teamId}}]})).body.error.code,'WORKSPACE_CHANGED');
+  }finally{await app.close();}
+});

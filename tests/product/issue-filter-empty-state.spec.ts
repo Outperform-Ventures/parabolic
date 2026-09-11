@@ -1,0 +1,19 @@
+import {test,expect} from '@playwright/test';import {createApp} from '../../src/server/app';import {resolve} from 'node:path';
+for(const surface of ['activity','team','board'])test(surface+': filtered empty state explains hidden issues and clears filters without creating an issue',async({page})=>{
+ const app=createApp({databasePath:':memory:',port:0,staticDir:resolve('dist')}),{url}=await app.start();try{
+  await page.request.post(url+'/auth/setup',{data:{name:'Owner',email:'empty-filter@example.test',password:'filter-password'}});const state=await page.request.get(url+'/api/v1/state').then(r=>r.json()),team=state.teams[0];
+  for(const title of ['First','Second'])await page.request.post(url+'/api/v1/issues',{data:{title,teamId:team.id,priority:2}});
+  await page.goto(url+(surface==='activity'?'/my-issues?tab=Activity':'/team/'+team.id+'/all'));if(surface==='board'){await page.getByRole('button',{name:'Display options',exact:true}).click();await page.getByRole('tab',{name:'Board',exact:true}).click();await page.keyboard.press('Escape')}await page.getByRole('button',{name:'Filter issues',exact:true}).click();await page.getByRole('textbox',{name:'Add filter',exact:true}).fill('Priority Urgent');await page.getByRole('menuitem',{name:'Priority Urgent',exact:true}).click();await page.keyboard.press('Escape');
+  await expect(page.getByText('No issues matching the filters',{exact:true})).toBeVisible();await expect(page.getByText('2 issues hidden by filters',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Clear Filters',exact:true}).click();await expect(page.locator(surface==='board'?'.board-card':'[data-testid=issue-row]')).toHaveCount(2);await expect(page.getByRole('dialog')).toHaveCount(0);await page.reload();await expect(page.locator(surface==='board'?'.board-card':'[data-testid=issue-row]')).toHaveCount(2);
+ }finally{await page.close();await app.close()}
+});
+test('search-empty count includes hidden candidates and inline Clear preserves property filters',async({page})=>{
+ const app=createApp({databasePath:':memory:',port:0,staticDir:resolve('dist')}),{url}=await app.start();try{
+  await page.request.post(url+'/auth/setup',{data:{name:'Owner',email:'search-empty@example.test',password:'filter-password'}});const state=await page.request.get(url+'/api/v1/state').then(r=>r.json()),team=state.teams[0];
+  for(const [title,priority]of [['First',2],['Second',2],['Low issue',4]])await page.request.post(url+'/api/v1/issues',{data:{title,priority,teamId:team.id}});
+  await page.goto(url+'/team/'+team.id+'/all');await page.getByRole('button',{name:'Filter issues',exact:true}).click();await page.getByRole('textbox',{name:'Add filter',exact:true}).fill('Priority High');await page.getByRole('menuitem',{name:'Priority High',exact:true}).click();await page.keyboard.press('Escape');
+  await page.keyboard.press('Meta+f');await page.getByRole('textbox',{name:'Filter issue titles',exact:true}).fill('no-match-token');await expect(page.getByText('3 issues hidden by filters',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Clear issue search',exact:true}).click();await expect(page.locator('[data-testid=issue-row]')).toHaveCount(2);await expect(page.getByRole('button',{name:'Remove Priority filter',exact:true})).toBeVisible();await expect(page.getByRole('textbox',{name:'Filter issue titles',exact:true})).toHaveCount(0);
+  await page.keyboard.press('Meta+f');await page.getByRole('textbox',{name:'Filter issue titles',exact:true}).fill('no-match-token');await page.getByRole('button',{name:'Clear Filters',exact:true}).click();await expect(page.locator('[data-testid=issue-row]')).toHaveCount(3);await expect(page.getByRole('button',{name:'Remove Priority filter',exact:true})).toHaveCount(0);
+ }finally{await page.close();await app.close()}
+});

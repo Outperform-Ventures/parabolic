@@ -1,0 +1,12 @@
+node_modules
+dist*
+release
+reference
+audit
+artifacts
+.data
+.env*
+.git
+test-results
+playwright-report
+*.log
