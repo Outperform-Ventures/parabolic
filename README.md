@@ -1,6 +1,10 @@
 # Parabolic
 
-Parabolic is an open-source issue, project, and planning workspace for macOS and the web. It combines a React interface, an Electron desktop shell, and a persistent Node/SQLite service in one repository.
+## Open Source Linear
+
+Parabolic is an open-source Linear-style workspace for issues, projects, and product planning. It brings a fast, keyboard-first experience to both macOS and the web, with the complete React interface, Electron desktop shell, and persistent Node/SQLite service available in this repository.
+
+Parabolic is an independent open-source project and is not affiliated with or endorsed by Linear.
 
 ## Run
 
