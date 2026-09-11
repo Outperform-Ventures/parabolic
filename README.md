@@ -6,6 +6,13 @@ Parabolic is an open-source Linear-style workspace for issues, projects, and pro
 
 Parabolic is an independent open-source project and is not affiliated with or endorsed by Linear.
 
+## Download for macOS
+
+- [Apple Silicon (M1 or newer)](https://github.com/jkuechly/Parabolic/releases/latest/download/Parabolic-0.1.0-Apple-Silicon.zip)
+- [Intel Mac](https://github.com/jkuechly/Parabolic/releases/latest/download/Parabolic-0.1.0-Intel.zip)
+
+Unzip the download, drag `Parabolic.app` into `/Applications`, then Control-click the app and choose **Open** for its first launch. These community builds are ad-hoc signed but not Apple-notarized, so double-clicking the app the first time may be blocked by Gatekeeper.
+
 ## Run
 
 The packaged Mac app stores its database in `~/Library/Application Support/Parabolic/`. No default account or password is supplied. Create the first workspace through the login screen.
