@@ -1,71 +1,102 @@
 # Parabolic
 
-An open-source workspace for issues, projects, documents and product planning, with a shared React interface for macOS and the web. The Electron application includes a local Node/SQLite service; the same service can be self-hosted for a shared workspace. Licensed under [MIT](LICENSE).
+An open-source workspace for issue tracking, projects, documents, and product planning. Parabolic runs as a macOS desktop application or a self-hosted web application.
 
-Parabolic is independent and is not affiliated with or endorsed by Linear or the integration brands shown in the interface. Integration branding is not evidence of an implemented provider connection.
+## Features
 
-## Documentation
+- Issues, projects, documents, and custom views
+- Collaborative editing and real-time updates
+- Offline editing with a persistent sync queue
+- Local SQLite storage
+- REST and GraphQL APIs, a TypeScript SDK, and MCP support
+- A shared interface across desktop and web
 
-| Document | Purpose |
-| --- | --- |
-| [Architecture](ARCHITECTURE.md) | Renderer, desktop processes, service, persistence, sync, SDK/MCP and boundaries. |
-| [Build/deploy/release runbook](DEPLOY_RUNBOOK.md) | Validation, Mac packaging, optional shared hosting, backups and rollback. |
-| [Environment and secrets](ENV_AND_SECRETS.md) | Application/development settings and where per-installation credentials live. |
-| [Agent instructions](AGENTS.md) | Safe development, data isolation and verification rules. |
-| [Service API](src/server/README.md) / [SDK](packages/sdk/README.md) | HTTP/domain reference and typed client. |
+Parabolic is under active development. Prebuilt installers are not currently available from this repository.
 
-## Run from source
+## Getting started
 
-Requires **Node 24.4+** (Node's SQLite API) and **pnpm 10.33.0**, as declared in `package.json`.
+### Requirements
+
+- Node.js 24.4 or later
+- pnpm 10.33.0
+- macOS for the desktop application
+
+### Install and build
 
 ```sh
 git clone https://github.com/Outperform-Ventures/parabolic.git
 cd parabolic
 pnpm install --frozen-lockfile
-pnpm typecheck
-pnpm test
 pnpm build
 ```
 
-For web development, check that ports **4173/4174** are free, then run `pnpm dev`. Vite serves the renderer on loopback port 4173 and proxies the API on 4174. Data is local under `.data/` by default. First run asks you to create an account/workspace; there is no default account or password.
+### Web development
 
-For the local production web build, `pnpm start` serves the compiled UI and API on loopback port 4174. See the runbook before exposing it to a network.
+```sh
+pnpm dev
+```
 
-## Desktop development and packaging
+Open <http://127.0.0.1:4173>. The API runs on port 4174, and development data is stored in `.data/`. On first launch, create an account and workspace.
 
-After building, start an isolated desktop profile:
+To serve the compiled application locally:
+
+```sh
+pnpm start
+```
+
+Open <http://127.0.0.1:4174>.
+
+### Desktop development
+
+After building, launch with a separate development profile:
 
 ```sh
 PARABOLIC_USER_DATA="$PWD/.local/desktop-profile" pnpm desktop
 ```
 
-Do not omit isolation when an installed Parabolic app already contains data. The embedded service keeps SQLite work in an Electron utility process and uses a loopback origin.
+To package an Apple Silicon macOS application:
 
-`pnpm package:mac` builds an Apple Silicon app under `release/mac-arm64/Parabolic.app`. With no update feed configured, this is an **ad-hoc development build**, not a Developer ID-signed or notarized public release. This OPV repository does not yet publish installers or operate an update feed; there are no fabricated download links here. Follow the [release runbook](DEPLOY_RUNBOOK.md) before distributing binaries.
+```sh
+pnpm package:mac
+```
 
-The advanced `pnpm dev:desktop` launcher can copy an existing installed workspace into an isolated development directory. It removes copied login sessions, but the copied records are still private. Use it only when deliberately testing with that data; it is not a clean first-run command.
+The application is written to `release/mac-arm64/Parabolic.app`. The default package is an ad-hoc signed development build, without Apple notarization.
 
-## What's included
+## Configuration
 
-- Issues, projects, documents, views, planning, customer records, collaboration and administration.
-- Persistent SQLite service with REST/GraphQL, scoped authentication, SSE and Yjs collaboration.
-- Durable client-side offline queue and conflict handling.
-- Electron windows, native menus, deep links and managed embedded-service lifecycle.
-- Typed SDK and credential-scoped MCP access.
-- Optional SMTP delivery when configured by a self-hosting operator.
+[`.env.example`](.env.example) lists the basic web-service settings. The server does not load `.env` automatically. To use a local environment file after building:
 
-Feature breadth is not a claim of complete functional/visual parity with another product. SAML/SCIM, hosted AI, billing, many external provider connections and an operated release service are not supplied by this repository.
+```sh
+cp .env.example .env
+node --env-file=.env dist-server/index.mjs
+```
 
-## CI and deployment
+The service binds to localhost by default. A network deployment requires a persistent database path, HTTPS, and explicit public URL and allowed-origin settings. SMTP delivery is optional.
 
-GitHub CI validates fresh source on Linux and macOS. It does not install over a user's app, connect to a production workspace, send email, publish an installer or deploy a server. Shared hosting and signed desktop distribution are separate operator choices documented in the runbook. There is no configured Fly application for this repository.
+Desktop data is stored in `~/Library/Application Support/Parabolic/` by default. `PARABOLIC_USER_DATA` selects a different profile. Back up SQLite using its backup API or after a clean shutdown so that committed WAL data is preserved.
 
-## Data and security
+## Documentation
 
-Installed macOS data normally lives under `~/Library/Application Support/Parabolic/`. Treat its database, browser partitions, cookies, drafts and backups as private. Source publication never includes those records. See the inventory before configuring SMTP, MCP or an update feed.
+- [Service API](src/server/README.md)
+- [TypeScript SDK](packages/sdk/README.md)
+- [MCP](docs/mcp.md)
+- [OAuth](docs/oauth.md)
+- [Collaboration](docs/collaboration.md)
 
-Back up SQLite consistently, including committed WAL data, and preserve profile/offline data when relevant. A code rollback does not reverse schema/data changes. Report suspected vulnerabilities privately to the repository maintainers; do not post tokens, workspace exports or account records in public issues.
+## Contributing
 
-## License and assets
+Bug reports and pull requests are welcome. For a bug report, include reproduction steps, your operating system, and the relevant Node.js version. Use synthetic data in examples and omit credentials and personal information.
 
-Application source is MIT-licensed; retain [LICENSE](LICENSE). Bundled Inter font files retain their SIL Open Font License in `src/client/fonts/LICENSE.txt` and `public/licenses/inter.txt`. Berkeley Mono and personal avatars are not redistributed. Third-party dependencies retain their licenses; product/integration names and logos may be their owners' trademarks.
+Before submitting a pull request, run:
+
+```sh
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+Use a separate database and desktop profile for development. Keep changes focused and include regression tests for behavior changes.
+
+## License
+
+Parabolic is licensed under the [MIT License](LICENSE). Bundled Inter fonts are distributed under the [SIL Open Font License](public/licenses/inter.txt). Third-party dependencies retain their respective licenses and trademarks.
