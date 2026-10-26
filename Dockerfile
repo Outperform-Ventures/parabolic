@@ -8,7 +8,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY src src
 COPY public public
 COPY packages/sdk packages/sdk
-COPY scripts/build-server.mjs scripts/build-desktop.mjs scripts/
+COPY scripts/build-server.mjs scripts/build-desktop.mjs scripts/offline-plugin.ts scripts/
 COPY index.html vite.config.ts tsconfig.json ./
 RUN pnpm build
 RUN pnpm prune --prod --ignore-scripts
