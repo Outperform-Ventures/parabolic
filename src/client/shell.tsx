@@ -5,6 +5,8 @@ import { richTextToMarkdown } from "./markdown";
 import { useSidebarDestinations } from "./sidebar-destinations";
 import { SidebarNavigation, SidebarHelp } from "./sidebar-navigation";
 import { SidebarTeamMenu } from "./sidebar-team-menu";
+import { SidebarResizeHandle, useSidebarLayout } from "./sidebar-resize";
+import { sidebarLayoutKey, SIDEBAR_CONTENT_RESERVE, SIDEBAR_MIN_WIDTH } from "./sidebar-layout";
 import { guestCapabilities } from "../shared/guest-capabilities";
 import {
   creationAvailabilityForContext,
@@ -188,6 +190,9 @@ const CustomerRequestPage = React.lazy(() =>
 );
 const CustomerPage = React.lazy(() =>
   import("./features/content").then((m) => ({ default: m.CustomerPage })),
+);
+const CustomerIssuesPage = React.lazy(() =>
+  import("./features/customers").then((m) => ({ default: m.CustomerIssuesPage })),
 );
 const AsksPage = React.lazy(() =>
   import("./features/content").then((m) => ({ default: m.AsksPage })),
@@ -379,7 +384,7 @@ export function App() {
       root.dataset.theme = theme;
       root.dataset.motion = prefs.reduceMotion ? "reduced" : "full";
       root.dataset.pointer =
-        prefs.pointerCursor === true ? "pointer" : "default";
+        prefs.pointerCursor !== false ? "pointer" : "default";
       root.dataset.underline = prefs.underlineLinks ? "always" : "hover";
       root.style.fontSize = `${fontSizePixels(localFontSize)}px`;
       for (const key of [
@@ -648,6 +653,10 @@ function Workspace() {
   const store = useAppStore(),
     navigate = useNavigate(),
     location = useLocation();
+  const { layout: sidebarLayout, update: updateSidebarLayout, setOpen: setSidebar } = useSidebarLayout(
+    sidebarLayoutKey(store.user?.id || 'anonymous', store.data.workspaceId),
+  );
+  const sidebar = !sidebarLayout.collapsed;
   const [composer, setComposer] = useState<Record<string, any> | null>(null),
     [palette, setPalette] = useState(false),
     [shortcuts, setShortcuts] = useState(false),
@@ -657,7 +666,6 @@ function Workspace() {
       enabled: boolean;
       canDisable: boolean;
     } | null>(null),
-    [sidebar, setSidebar] = useState(true),
     [createWorkspace, setCreateWorkspace] = useState(false),
     [leaveTeam, setLeaveTeam] = useState<Entity | null>(null),
     [crossPageUndo, setCrossPageUndo] = useState<{
@@ -964,8 +972,9 @@ function Workspace() {
         customer: ["customers", "Customer"],
         view: ["views", "View"],
         cycles: ["cycles", "Cycle"],
+        dashboards: ["dashboards", "Dashboard"],
       } as const
-    )[route.split("/")[1] as "initiative" | "customer" | "view" | "cycles"];
+    )[route.split("/")[1] as "initiative" | "customer" | "view" | "cycles" | "dashboards"];
     if (entitySection && route.split("/")[2]) {
       const entity = store.data[entitySection[0]].find(
         (item) => item.id === route.split("/")[2],
@@ -1489,6 +1498,7 @@ function Workspace() {
             guestAccess.guest
               ? "/team/" + defaultTeam?.id + "/projects?new=1"
               : "/projects?new=1",
+            { state: { newProjectName: typeof event.value === "string" ? event.value.trim() : "" } },
           );
         break;
       case "new-document":
@@ -1612,6 +1622,7 @@ function Workspace() {
   return (
     <div
       className={`workspace-shell ${hasDesktop ? "desktop" : "web"} ${!sidebar ? "sidebar-collapsed" : ""} ${isSettings ? "settings-shell" : ""}`}
+      style={{ '--sidebar-width': isSettings ? undefined : !sidebar ? '0px' : sidebarLayout.width === null ? undefined : `min(${sidebarLayout.width}px, max(${SIDEBAR_MIN_WIDTH}px, calc(100vw - ${SIDEBAR_CONTENT_RESERVE}px)))` } as React.CSSProperties}
     >
       <InboxNavigationRead />
       <div
@@ -1732,7 +1743,7 @@ function Workspace() {
               }}
             >
               {routeIcon(tab.route)}
-              <span>{routeLabel(tab.route)}</span>
+              <span className="app-tab-label">{routeLabel(tab.route)}</span>
               {tab.pinned && <Icon name="Pin" size={11} />}
               {tab.id === tabId && (
                 <button
@@ -1911,8 +1922,8 @@ function Workspace() {
         })()}
       </div>
       <div className="shell-main">
-        {sidebar && !isSettings && (
-          <aside className="sidebar">
+        {!isSettings && (
+          <aside id="workspace-sidebar" className="sidebar" hidden={!sidebar}>
             <div className="workspace-switcher">
               <WorkspaceMenu
                 name={workspace?.name ?? "Workspace"}
@@ -1978,7 +1989,6 @@ function Workspace() {
                   Your teams
                   <NativeSidebarDisclosure expanded={!teamsCollapsed} />
                 </button>
-                <span className="spacer" />
                 <button
                   className="icon-button"
                   hidden={guestAccess.guest}
@@ -2065,7 +2075,7 @@ function Workspace() {
                           )
                         }
                         aria-label={team.name}
-                        title="Drag to reorder teams. Option + Up/Down moves this team."
+                        aria-description="Drag to reorder teams. Option + Up/Down moves this team."
                         onKeyDown={(e) => {
                           if (
                             e.altKey &&
@@ -2170,8 +2180,9 @@ function Workspace() {
             </div>
           </aside>
         )}
+        {!isSettings && <SidebarResizeHandle key={sidebarLayoutKey(store.user?.id || 'anonymous', store.data.workspaceId)} layout={sidebarLayout} onChange={updateSidebarLayout} />}
         <section className="main-panel">
-          {!sidebar && (
+          {!sidebar && !isSettings && (
             <button
               className="restore-sidebar icon-button"
               aria-label="Show sidebar"
@@ -2308,6 +2319,10 @@ function Workspace() {
                 <Route
                   path="/customer/:customerId"
                   element={<CustomerPage />}
+                />
+                <Route
+                  path="/customer/:customerId/issues"
+                  element={<CustomerIssuesPage />}
                 />
                 <Route
                   path="/customer-request/:requestId"

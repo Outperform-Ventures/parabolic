@@ -54,6 +54,7 @@ import {
   type ReminderKind,
 } from "./reminders";
 import { nativeCommandRouting } from "./native-command-routing";
+import { installMouseHistoryNavigation } from "./history-navigation";
 
 type Target = { kind: EntityKind; items: Entity[] };
 type DialogState = {
@@ -245,11 +246,11 @@ function contextFor(
   event: KeyboardEvent,
 ): ShortcutContext {
   const target = event.target instanceof Element ? event.target : null;
-  const editor = target?.closest('[contenteditable="true"]');
+  const editor = target instanceof HTMLElement && target.isContentEditable;
   const typing = editor
     ? "editor"
     : target?.closest(
-          "input:not([type=checkbox]):not([type=radio]),textarea,select",
+          'input:not([type=checkbox]):not([type=radio]),textarea,select,[role="textbox"],[role="combobox"]',
         )
       ? "input"
       : false;
@@ -306,7 +307,7 @@ function contextFor(
               ? "document"
               : undefined,
     typing,
-    modalOpen: !!document.querySelector('[role="dialog"],dialog[open]'),
+    modalOpen: !!document.querySelector('[role="dialog"],dialog[open],[aria-modal="true"],[role="menu"],.dropdown-content'),
     platform: /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other",
     teamId,
     cyclesEnabled: !!(cycleTeam?.cycleEnabled || cycleTeam?.cyclesEnabled),
@@ -1505,7 +1506,16 @@ export function ShortcutActions({
         if (handled) event.preventDefault();
       }
     };
+    const historyKeydown = (event: KeyboardEvent) => {
+      if (!event.metaKey && !event.ctrlKey && !event.altKey && ["Backspace", "BrowserBack", "BrowserForward"].includes(event.key)) {
+        // Closed property buttons stop bubbling keys; navigation still belongs
+        // to the page. contextFor/resolveShortcut preserve editing and menus.
+        keydown(event);
+      }
+    };
+    document.addEventListener("keydown", historyKeydown, true);
     document.addEventListener("keydown", keydown);
+    const removeMouseHistory = installMouseHistoryNavigation(dispatchWorkspaceCommand);
     const found = (window.desktop as any)?.onFindResult?.(
       (result: { activeMatchOrdinal: number; matches: number }) =>
         setFindResult(`${result.activeMatchOrdinal} of ${result.matches}`),
@@ -1513,6 +1523,8 @@ export function ShortcutActions({
     return () => {
       window.removeEventListener("workspace-command", listener);
       document.removeEventListener("keydown", keydown);
+      document.removeEventListener("keydown", historyKeydown, true);
+      removeMouseHistory();
       found?.();
     };
   }, []);

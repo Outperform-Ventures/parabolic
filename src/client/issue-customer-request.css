@@ -1,6 +1,6 @@
 .issue-request-customer-picker{width:720px;background:var(--popover);border-color:var(--popover-border);overflow:hidden}
 .issue-request-customer-picker>input{width:100%;display:block;height:40px;margin:6px 6px 0;width:calc(100% - 10px);padding:11px 12px;background:transparent;color:var(--text);border:0;outline:0;font-size:13px}
-.issue-request-customer-picker [role=listbox]{padding:6px;width:calc(100% + 2px);margin-bottom:-2px;max-height:360px;overflow:auto}
+.issue-request-customer-picker [role=listbox]{padding:6px;width:100%;margin-bottom:-2px;max-height:360px;overflow-y:auto;overflow-x:hidden}
 .issue-request-customer-picker [role=option]{display:flex;align-items:center;gap:8px;width:100%;height:46px;padding:0 12px;border:0;border-radius:6px;background:transparent;color:var(--text);text-align:left;font-size:13px;font-weight:450;line-height:15.6px}
 .issue-request-customer-picker [aria-selected=true]{background:var(--hover)}
 .issue-request-composer{padding:12px 16px;border:1px solid var(--border);border-radius:8px;background:var(--hover);margin:16px 0}
@@ -25,7 +25,7 @@
 .issue-customers-header{height:28px;display:flex;align-items:center;gap:6px;margin-bottom:6px}
 .issue-customers-toggle{display:flex;align-items:center;gap:4px;border:0;background:transparent;color:var(--muted);font-size:12px;padding:0;height:28px}
 .issue-customers-control{display:flex;align-items:center;justify-content:center;border:0;width:28px;height:28px;border-radius:999px;background:var(--hover);color:var(--muted)}
-.issue-customers-control:hover{color:var(--text)}
+.issue-customers-control:hover{color: var(--hover-text)}
 .issue-request-display{width:282px;padding:8px 10px}
 .issue-request-display :is(label,.issue-request-order-row){display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:30px;font-size:12px;color:var(--muted)}
 .issue-request-display select{font-size:12px;color:var(--text);background:var(--hover);border:1px solid var(--border);border-radius:5px;padding:2px 6px}
@@ -123,7 +123,7 @@
 .issue-request-new-target input{min-width:0;height:26px;padding:4px 7px;border:1px solid var(--border);border-radius:6px;background:var(--input);color:var(--text);font:inherit;outline:none}
 .issue-request-new-target input:focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .issue-request-new-target button{display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--muted)}
-.issue-request-new-target button:hover{background:var(--hover);color:var(--text)}
+.issue-request-new-target button:hover{background:var(--hover);color: var(--hover-text)}
 
 .issue-request-source>span{font-weight:450;line-height:normal}
 :root:not([data-theme=light]) .issue-request-source>span{color:lch(90.826 1.425 272)}
@@ -156,7 +156,9 @@
 .menu:has(>.issue-request-display):focus{outline:none}
 :root:not([data-theme=light]) .issue-request-direction{color:lch(64.714 1.425 272)}
 .issue-request-display .issue-request-direction:is(:hover,:focus-visible){background:var(--hover);color:var(--text)}
+.issue-request-display .issue-request-direction:hover { color: var(--hover-text); }
 @supports(width:calc-size(max-content,round(down,size + 2px,1px))){.issue-request-display .customer-choice-compact{width:calc-size(max-content,round(down,size + 2px,1px))}}
 .customer-choice-compact>.customer-editor-glyph{width:10px}
 :root:not([data-theme=light]) .customer-choice-compact{background:lch(17.349 1.139 272);color:lch(91.178 1.425 272)}
 :root:not([data-theme=light]) .customer-choice-compact:is(:hover,:focus-visible,[aria-expanded=true]){background:lch(21.977 1.525 272);color:lch(100 0 272)}
+:root:not([data-theme=light]) .customer-choice-compact:hover { color: var(--hover-text); }

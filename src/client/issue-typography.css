@@ -1,0 +1,33 @@
+/* Shared issue text uses CSS pixels, independently of icon and helper sizing. */
+.issue-view .issue-row-title,
+.issue-view .issue-identifier,
+.issue-view .board-card-title,
+.issue-view .board-card-identifier,
+.issue-view .group-header,
+.issue-view .group-header > strong,
+.issue-view .group-count,
+.issue-view .page-tabs > a,
+.issue-view .page-tabs > button:not(.icon-button) {
+  font-size: 14px;
+}
+
+/* Secondary issue metadata remains one step quieter than titles/headings. */
+.issue-view .issue-project-badge,
+.issue-view .board-project-badge,
+.issue-view .issue-estimate,
+.issue-view .board-card-estimate,
+.issue-view .issue-row-date,
+.issue-view .board-card > time,
+.issue-view .issue-due-date {
+  font-size: 13px;
+}
+
+/* A details panel can narrow the list even in a wide window. */
+.issue-view .issue-list-scroll:not(.board-scroll) {
+  container: issue-list-typography / inline-size;
+}
+@container issue-list-typography (max-width: 560px) {
+  .virtual-issue-list .issue-row { gap: 6px; }
+  .virtual-issue-list .issue-row > .issue-row-date,
+  .virtual-issue-list .issue-row > .issue-due-date { display: none; }
+}

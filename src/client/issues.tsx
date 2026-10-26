@@ -1,4 +1,10 @@
 import { myIssueTabSearch } from "./my-issue-tab-navigation";
+import { IssueTitleEditor } from "./issue-title-editor";
+import { ComposerFieldSettings, ComposerActions, useComposerFieldLayout } from "./composer-field-settings";
+import { composerLayoutForContext, visibleComposerFields, type ComposerField } from "./composer-field-layout";
+import { useIssueGroupCollapse } from "./issue-collapse-state";
+import { useSectionReorder, SECTION_DRAG_TYPE } from "./section-reorder";
+import { mergeSectionOrder, type SectionOrders } from "./section-order";
 import "./composer-parity.css";
 import "./issue-drag-feedback.css";
 import { IssueDescriptionHistory } from "./issue-description-history";
@@ -14,6 +20,12 @@ import { IssueTeamMenu } from "./issue-team-menu";
 import { IssueReminderMenu } from "./issue-reminder-menu";
 import { IssueCustomDue } from "./issue-custom-due";
 import { IssueDueMenu } from "./issue-due-menu";
+import { InlineDueDatePicker } from "./inline-due-date-picker";
+import { useInlineMenuPosition } from "./use-inline-menu-position";
+import "./inline-issue-properties.css";
+import {CustomerPicker,CustomerAssignmentControl,CustomerBulkControl} from "./customer-assignment-picker";
+import {withCustomerAssignments} from "../shared/customer-assignments";
+import { InlineIssueValue, InlineIssueSla } from "./inline-issue-value";
 import {
   IssueMarkAs,
   markIssueActions,
@@ -42,8 +54,12 @@ import {
   type IssueSortRule,
 } from "./issue-sort-rules";
 import { IssueSortColumns } from "./issue-sort-columns";
+import { IssueColumn, OrderedIssueColumns, IssueColumnEditor, ISSUE_COLUMN_HEADER_HEIGHT } from "./issue-column-editor";
+import { issueColumnDefinitions, normalizeIssueColumnOrder, normalizeIssueColumnWidths, isIssueColumnVisible, setIssueColumnVisible, issueColumnSettingsFingerprint, withSavedIssueColumns } from "./issue-column-order";
 import { IssueSortEditor } from "./issue-sort-editor";
+import { migrateProfileDisplay, profileStatusOrder } from "./profile-display";
 import { IssueFilterMenu, IssueFilterChips } from "./issue-filter-menu";
+import { unwrapIssueFilter } from "./issue-filter-selection";
 import {
   completedIssueVisible,
   orderCompletedIssues,
@@ -55,6 +71,8 @@ import {
   estimateLabel,
 } from "../shared/estimates";
 import { IssueActivityTimeline } from "./issue-activity-timeline";
+import { ScheduleView } from "./features/schedule-view";
+import type { ScheduleOptions } from "./features/schedule-data";
 import { formattingOnlyIssueActivity } from "./issue-history-content";
 import { IssueSubscriberMenu } from "./issue-subscriber-menu";
 import { dispatchWorkspaceCommand } from "./shortcut-actions";
@@ -240,7 +258,9 @@ export function PropertyPicker({
   emptyLabel,
   optionsOverride,
   actionMenu = false,
-  detail = false,
+  detail: detailRequested = false,
+  inline = false,
+  triggerClassName,
   children,
 }: {
   field: Property;
@@ -253,8 +273,11 @@ export function PropertyPicker({
   optionsOverride?: any[];
   actionMenu?: boolean;
   detail?: boolean;
+  inline?: boolean;
+  triggerClassName?: string;
   children?: React.ReactNode;
 }) {
+  const detail = detailRequested || inline;
   const { data, user, create } = useAppStore();
   const creatingLabel = useRef(false);
   const [inviting, setInviting] = useState(false);
@@ -267,6 +290,9 @@ export function PropertyPicker({
     [rect, setRect] = useState<DOMRect>();
   const ref = useRef<HTMLButtonElement>(null);
   const popup = useRef<HTMLDivElement>(null);
+  useInlineMenuPosition(open && inline, ref, popup);
+  const projectMemberIds = new Set<string>(data.projects.find(project => project.id === projectId)?.memberIds || []);
+  const assigneeGroup = (id: string) => projectMemberIds.has(id) ? "Project members" : "Team members";
   const options = useMemo(() => {
     if (optionsOverride) return optionsOverride;
     if (field === "priority")
@@ -278,7 +304,9 @@ export function PropertyPicker({
         visited.add(team.id);
         team = data.teams.find((t) => t.id === team!.parentId) ?? team;
       }
-      return estimateOptions(team);
+      return estimateOptions(team, open
+        ? [...data.issues.filter(issue => issue.teamId === teamId && !issue.deletedAt).map(issue => issue.estimate), value]
+        : [value]);
     }
     const kind = (
       {
@@ -326,7 +354,7 @@ export function PropertyPicker({
             ? -1
             : b.id === user?.id
               ? 1
-              : String(a.name).localeCompare(String(b.name)),
+              : (inline ? Number(projectMemberIds.has(b.id)) - Number(projectMemberIds.has(a.id)) : 0) || String(a.name).localeCompare(String(b.name)),
         );
     if (field === "projectId" && teamId)
       items = items
@@ -371,6 +399,7 @@ export function PropertyPicker({
     teamId,
     projectId,
     optionsOverride,
+    open,
     value,
     user?.id,
     expandedLabelGroups,
@@ -381,8 +410,10 @@ export function PropertyPicker({
       field === "labelIds" && e.group ? e.group + "/" + e.name : (e.name ?? ""),
     )
       .toLowerCase()
-      .includes(query.replace(":", "/").toLowerCase()),
+      .includes((field === "projectId" ? query.trim() : query.replace(":", "/")).toLowerCase()),
   );
+  const createProjectOnly = field === "projectId" && !optionsOverride && !!query.trim() && !filtered.length;
+  if (createProjectOnly) filtered.push({ id: "create-project", name: `Create ${query.trim()}`, createProject: true });
   const newLabel =
     field === "labelIds" && !optionsOverride ? parseLabelName(query) : null;
   if (newLabel) {
@@ -432,8 +463,10 @@ export function PropertyPicker({
             } as Record<string, string>
           )[field] ??
           field);
+  const optionName = (item: any) => detail && field === "estimate" && item.id != null && /^\d+$/.test(item.name)
+    ? `${item.id} ${item.id === 1 ? "Point" : "Points"}` : item.name;
   const leading = (item: any) =>
-    field === "statusId" ? (
+    item.createProject ? <Icon name="Plus" size={16} /> : field === "statusId" ? (
       detail &&
       (item.type === "duplicate" ||
         item.name?.toLowerCase() === "duplicate") ? (
@@ -462,7 +495,7 @@ export function PropertyPicker({
     ) : field === "assigneeId" ? (
       <Avatar user={item.id ? item : null} />
     ) : field === "estimate" ? (
-      <EntityIcon
+      item.id == null ? <Icon name="CircleDashed" size={16} /> : <EntityIcon
         entity={{ icon: "Estimate", color: "var(--muted)" }}
         size={15}
       />
@@ -492,7 +525,14 @@ export function PropertyPicker({
         size={15}
       />
     );
+  const openNewProject = () => {
+    setOpen(false);
+    window.dispatchEvent(new CustomEvent("workspace-command", {
+      detail: { command: "new-project", value: query.trim() },
+    }));
+  };
   const choose = (item: any) => {
+    if (item.createProject) { openNewProject(); return; }
     if (
       creatingLabel.current ||
       (field === "labelIds" &&
@@ -563,8 +603,13 @@ export function PropertyPicker({
     if (field !== "labelIds") setOpen(false);
   };
   useEffect(() => {
+    if (open) setSelected(field === "priority" || detail
+      ? Math.max(0, options.findIndex(item => item.id === value)) : 0);
+    // Opening resolves imported estimate options; initialize against that list.
+  }, [open]);
+  useEffect(() => {
     if (!open) return;
-    const outside = (e: MouseEvent) => {
+    const outside = (e: PointerEvent) => {
       if (
         !popup.current?.contains(e.target as Node) &&
         !ref.current?.contains(e.target as Node)
@@ -572,6 +617,13 @@ export function PropertyPicker({
         setOpen(false);
     };
     const key = (e: KeyboardEvent) => {
+      if (e.isComposing) return;
+      if (!popup.current?.contains(e.target as Node) && !ref.current?.contains(e.target as Node)) return;
+      if (inline && field === "assigneeId" && !query && /^[01]$/.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const item = options.find(option => option.id === (e.key === "0" ? null : user?.id));
+        if (item) { e.preventDefault(); e.stopPropagation(); choose(item); }
+        return;
+      }
       if (
         detail &&
         field === "statusId" &&
@@ -626,10 +678,10 @@ export function PropertyPicker({
         choose(filtered[selected]);
       }
     };
-    document.addEventListener("mousedown", outside);
+    document.addEventListener("pointerdown", outside, true);
     document.addEventListener("keydown", key, true);
     return () => {
-      document.removeEventListener("mousedown", outside);
+      document.removeEventListener("pointerdown", outside, true);
       document.removeEventListener("keydown", key, true);
     };
   }, [open, filtered, selected, value]);
@@ -639,22 +691,16 @@ export function PropertyPicker({
         ref={ref}
         data-property={field}
         type="button"
-        className={`property-button ${compact ? "compact" : ""} ${actionMenu ? "issue-primary-action-button" : ""}`}
+        className={triggerClassName || `property-button ${compact ? "compact" : ""} ${actionMenu ? "issue-primary-action-button" : ""}`}
         aria-label={`Change ${field.replace(/Ids?$/, "")}`}
         aria-expanded={open}
+        aria-haspopup="dialog"
+        onKeyDown={(e) => { e.stopPropagation(); }}
         onClick={(e) => {
           e.stopPropagation();
           setRect(ref.current?.getBoundingClientRect());
           setQuery("");
           setLabelError("");
-          setSelected(
-            field === "priority" || detail
-              ? Math.max(
-                  0,
-                  options.findIndex((item) => item.id === value),
-                )
-              : 0,
-          );
           setOpen(!open);
         }}
       >
@@ -670,7 +716,7 @@ export function PropertyPicker({
         createPortal(
           <div
             ref={popup}
-            className={`menu property-menu ${detail ? "issue-detail-property-menu" : ""} ${field === "priority" ? "priority-property-menu" : ""}`}
+            className={`menu property-menu ${detail ? "issue-detail-property-menu" : ""} ${inline ? "inline-issue-property-menu" : ""} ${field === "priority" ? "priority-property-menu" : ""}`}
             data-property-menu={field}
             role={detail ? "dialog" : undefined}
             aria-label={detail ? "Menu" : undefined}
@@ -705,6 +751,7 @@ export function PropertyPicker({
                     : Math.min(rect.bottom + 6, innerHeight - 360),
             }}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
           >
             {detail && (
               <span className="native-visually-hidden" role="status">
@@ -796,21 +843,20 @@ export function PropertyPicker({
                       field === "assigneeId" &&
                       item.id !== null &&
                       item.id !== user?.id &&
-                      filtered
-                        .slice(0, i)
-                        .every(
-                          (row) => row.id === null || row.id === user?.id,
-                        ) && (
+                      (inline
+                        ? assigneeGroup(filtered.slice(0, i).filter(row => row.id != null && row.id !== user?.id).at(-1)?.id) !== assigneeGroup(item.id) || filtered.slice(0, i).every(row => row.id === null || row.id === user?.id)
+                        : filtered.slice(0, i).every(row => row.id === null || row.id === user?.id)) && (
                         <div
                           className="property-menu-group"
                           role="group"
-                          aria-label="Team members"
+                          aria-label={inline ? assigneeGroup(item.id) : "Team members"}
                         >
-                          Team members
+                          {inline ? assigneeGroup(item.id) : "Team members"}
                         </div>
                       )}
                     {detail &&
                       field === "projectId" &&
+                      !item.createProject &&
                       item.id !== null &&
                       filtered.slice(0, i).every((row) => row.id === null) && (
                         <div
@@ -827,6 +873,7 @@ export function PropertyPicker({
                     <button
                       type="button"
                       role={detail ? "option" : undefined}
+                      aria-label={detail ? optionName(item) : undefined}
                       id={
                         detail ? `issue-detail-${field}-option-${i}` : undefined
                       }
@@ -848,17 +895,16 @@ export function PropertyPicker({
                     >
                       {leading(item)}
                       <span>
-                        {detail && field === "estimate" && item.id != null
-                          ? `${item.id} ${item.id === 1 ? "Point" : "Points"}`
-                          : item.name}
+                        {optionName(item)}
                       </span>
                       {(field === "labelIds"
                         ? (value ?? []).includes(item.id)
                         : value === item.id) && <Icon name="Check" size={14} />}
                       {(field === "priority" ||
-                        (detail && field === "statusId" && !query)) && (
+                        (detail && field === "statusId" && !query) ||
+                        (inline && field === "assigneeId" && !query && (item.id == null || item.id === user?.id))) && (
                         <kbd aria-hidden="true">
-                          {field === "priority" ? item.id : i + 1}
+                          {field === "priority" ? item.id : field === "assigneeId" ? item.id == null ? 0 : 1 : i + 1}
                         </kbd>
                       )}
                       {item.groupHeader && (
@@ -910,8 +956,9 @@ export function PropertyPicker({
                   </button>
                 </>
               )}
-              {detail && field === "projectId" && !optionsOverride && (
+              {detail && field === "projectId" && !optionsOverride && !createProjectOnly && (
                 <>
+                  {inline && value && <Link className="menu-item" to={`/project/${value}`} onClick={() => setOpen(false)}><Icon name="ArrowUpRight" size={16}/><span>Open project</span></Link>}
                   <div
                     className="property-menu-group"
                     role="group"
@@ -923,14 +970,7 @@ export function PropertyPicker({
                     type="button"
                     role="option"
                     className="menu-item"
-                    onClick={() => {
-                      setOpen(false);
-                      window.dispatchEvent(
-                        new CustomEvent("workspace-command", {
-                          detail: { command: "new-project" },
-                        }),
-                      );
-                    }}
+                    onClick={openNewProject}
                   >
                     Create new project…
                   </button>
@@ -992,6 +1032,7 @@ export function IssueComposer({
   inline?: boolean;
 }) {
   const store = useAppStore();
+  const composerLayout = useComposerFieldLayout();
   const firstTeam = defaults.teamId ?? store.data.teams[0]?.id;
   const [fields, setFields] = useState<Record<string, any>>(() => ({
     ...initialIssueFields(defaults, store.data, store.user?.id),
@@ -1068,21 +1109,6 @@ export function IssueComposer({
     (fields.templateId === fields.__template?.id
       ? fields.__template
       : undefined);
-  const suggestedAssignee = !fields.assigneeId ? store.user : undefined;
-  const suggestedMilestones =
-    fields.projectId && !fields.milestoneId
-      ? store.data.milestones
-          .filter(
-            (milestone) =>
-              !milestone.deletedAt && milestone.projectId === fields.projectId,
-          )
-          .sort(
-            (a, b) =>
-              (a.position ?? a.sortOrder ?? 0) -
-              (b.position ?? b.sortOrder ?? 0),
-          )
-          .slice(0, 2)
-      : [];
   const missingFields = missingTemplateFields(
     selectedTemplate,
     fields,
@@ -1243,6 +1269,14 @@ export function IssueComposer({
     return () => document.removeEventListener("keydown", key);
   });
   const ComposerFrame = inline ? InlineIssueComposerFrame : Modal;
+  const estimateDisabled = store.data.teams.find(team => team.id === fields.teamId)?.estimateScale === "None";
+  const composerContext = {
+    customized: composerLayout.customized, inline, expanded, projectId: fields.projectId,
+    estimateDisabled, dueDate: fields.dueDate, recurrence: fields.recurrence,
+  };
+  const effectiveLayout = composerLayoutForContext(composerLayout.layout, composerContext);
+  const visibleFields = visibleComposerFields(effectiveLayout, composerContext);
+  const composerProperties: (Property | ComposerField)[] = [...(inline ? ['teamId' as const] : []), ...visibleFields];
   const discardInline = () => {
     draftSubmitted.current = true;
     removeDraft(draftStorage, savedDraftId.current);
@@ -1454,89 +1488,18 @@ export function IssueComposer({
               />
             </>
           )}
-          {!multiple &&
-            (suggestedAssignee || suggestedMilestones.length > 0) && (
-              <div
-                className="composer-suggestions"
-                aria-label="Quick suggestions"
-              >
-                <button
-                  type="button"
-                  className="composer-suggestions-label"
-                  aria-label="Apply all quick suggestions"
-                  onClick={() =>
-                    setFields((old) => ({
-                      ...old,
-                      ...(suggestedAssignee
-                        ? { assigneeId: suggestedAssignee.id }
-                        : {}),
-                      ...(suggestedMilestones[0]
-                        ? { milestoneId: suggestedMilestones[0].id }
-                        : {}),
-                    }))
-                  }
-                >
-                  <Icon name="Sparkles" size={13} />
-                  Quick suggestions
-                </button>
-                {suggestedAssignee && (
-                  <button
-                    type="button"
-                    className="composer-suggestion"
-                    aria-label={`Apply suggested assignee: ${suggestedAssignee.name}`}
-                    onClick={() => set("assigneeId", suggestedAssignee.id)}
-                  >
-                    <Avatar user={suggestedAssignee} size={14} />
-                    {suggestedAssignee.name}
-                  </button>
-                )}
-                {suggestedMilestones.map((milestone) => (
-                  <button
-                    type="button"
-                    key={milestone.id}
-                    className="composer-suggestion"
-                    aria-label={`Apply suggested \"${milestone.name}\" milestone`}
-                    onClick={() => set("milestoneId", milestone.id)}
-                  >
-                    <Icon name="Diamond" size={12} />
-                    {milestone.name}
-                  </button>
-                ))}
-              </div>
-            )}
           <div className="composer-properties">
-            {(
-              (inline
-                ? [
-                    "teamId",
-                    "priority",
-                    "assigneeId",
-                    ...(store.data.teams.find(
-                      (team) => team.id === fields.teamId,
-                    )?.estimateScale !== "None"
-                      ? ["estimate"]
-                      : []),
-                    "labelIds",
-                  ]
-                : [
-                    "statusId",
-                    "priority",
-                    "assigneeId",
-                    "projectId",
-                    ...(fields.projectId ? ["milestoneId"] : []),
-                    ...(store.data.teams.find(
-                      (team) => team.id === fields.teamId,
-                    )?.estimateScale !== "None"
-                      ? ["estimate"]
-                      : []),
-                    "labelIds",
-                  ]) as Property[]
-            ).map((field) => (
+            {composerProperties.map((field) => {
+              if (field === 'customers') return <CustomerPicker key={field} className="property-button" kind="issues" entity={fields} onChange={patch=>setFields(old=>({...old,...patch}))}/>;
+              if (field === 'dueDate') return <Dropdown key={field} trigger={<button type="button" className="property-button" data-property="dueDate" aria-label="Set due date"><Icon name="Calendar" size={14}/>{fields.dueDate ? <time dateTime={fields.dueDate}>{parseDueDate(fields.dueDate)?.toLocaleDateString()}</time> : 'Due date'}</button>}><IssueDueMenu value={fields.dueDate} onRemove={() => set('dueDate', null)} onCustom={() => setDue(true)} onSelect={date => set('dueDate', date)}/></Dropdown>;
+              if (field === 'recurrence') return <button key={field} type="button" className="property-button" data-property="recurrence" onClick={() => setRecurring(true)}><Icon name="Repeat" size={14}/>{fields.recurrence ? `Repeats ${fields.recurrence.frequency}` : 'Make recurring…'}</button>;
+              return (
               <PropertyPicker
                 key={field}
                 field={field}
                 value={fields[field]}
                 teamId={fields.teamId}
+                projectId={fields.projectId}
                 emptyLabel={
                   {
                     priority: "Priority",
@@ -1560,38 +1523,29 @@ export function IssueComposer({
                           store.user?.id,
                         ),
                       )
-                    : set(field, v)
+                    : field === 'projectId' ? setFields(old => ({...old, projectId: v, milestoneId: old.projectId === v ? old.milestoneId : null})) : set(field, v)
                 }
               />
-            ))}
+            );})}
             <Dropdown
+              menuClassName="composer-settings-menu"
+              trapFocus
               trigger={
                 <button
                   className="property-button icon-button"
                   aria-label="More actions"
+                  title="Customize issue fields"
                 >
                   <Icon name="MoreHorizontal" />
                 </button>
               }
             >
+              <ComposerFieldSettings layout={effectiveLayout} onChange={composerLayout.change} projectId={fields.projectId} estimateDisabled={estimateDisabled}/>
+              <ComposerActions>
               <IssueActionFilter searchLabel="Filter issue actions">
                 <span className="native-visually-hidden" role="status">
                   Showing all items
                 </span>
-                <IssueActionSubmenu
-                  label="Set due date"
-                  icon="Calendar"
-                  shortcut="⇧ D"
-                  filter={false}
-                >
-                  <IssueDueMenu
-                    onCustom={() => setDue(true)}
-                    onSelect={(date) => set("dueDate", date)}
-                  />
-                </IssueActionSubmenu>
-                <MenuItem icon="Repeat" onClick={() => setRecurring(true)}>
-                  Make recurring…
-                </MenuItem>
                 <MenuItem
                   icon="Link"
                   shortcut="⌃ L"
@@ -1614,33 +1568,8 @@ export function IssueComposer({
                   Add sub-issue
                 </MenuItem>
               </IssueActionFilter>
+              </ComposerActions>
             </Dropdown>
-            {expanded &&
-              (
-                [
-                  "cycleId",
-                  ...(fields.projectId ? [] : ["milestoneId"]),
-                ] as Property[]
-              ).map((field) => (
-                <PropertyPicker
-                  key={field}
-                  field={field}
-                  value={fields[field]}
-                  teamId={fields.teamId}
-                  projectId={fields.projectId}
-                  onChange={(v) => set(field, v)}
-                />
-              ))}
-            {fields.dueDate && (
-              <Badge>
-                <time dateTime={fields.dueDate}>
-                  {parseDueDate(fields.dueDate)?.toLocaleDateString()}
-                </time>
-              </Badge>
-            )}
-            {fields.recurrence && (
-              <Badge>Repeats {fields.recurrence.frequency}</Badge>
-            )}
             {inline && (
               <>
                 <span className="spacer" />
@@ -1911,6 +1840,7 @@ export function IssueActions({
         }
       >
         <IssueActionFilter compact>
+          <CustomerAssignmentControl kind="issues" entity={issue} label="Customers…"/>
           {position && (
             <span className="native-visually-hidden" role="status">
               Showing all items
@@ -2840,7 +2770,9 @@ export function IssueActions({
   );
 }
 
-type Display = {
+type Display = ScheduleOptions & {
+  columnOrder?: string[];
+  columnWidths?: Record<string, number>;
   manualOrders?: Record<string, string[]>;
   sortScope?: string;
   showSortColumns?: boolean;
@@ -2848,8 +2780,9 @@ type Display = {
   completedWindow?: string;
   orderCompletedByRecency?: boolean;
   groupOrder?: string[];
+  groupOrders?: SectionOrders;
   hiddenGroups?: Record<string, string[]>;
-  layout: "list" | "board";
+  layout: "list" | "board" | "calendar" | "timeline";
   groupBy: string;
   subGroupBy: string;
   orderBy: string;
@@ -2880,10 +2813,15 @@ const displayFingerprint = (value: Display) =>
     !!value.showSortColumns,
     value.sortRules || [],
     value.groupOrder || [],
+    value.groupOrders || {},
     value.hiddenGroups || {},
     value.manualOrders || {},
     value.collapsedSubIssues || [],
     value.properties,
+    value.columnOrder || [],
+    normalizeIssueColumnWidths(value.columnWidths),
+    value.calendarMode, value.calendarDateField, value.scheduleAnchor,
+    value.timelineScale, value.showDependencies, value.showUnscheduled,
   ]);
 const defaultDisplay: Display = {
   layout: "list",
@@ -3024,6 +2962,9 @@ const migrateImportedTriageBoardDisplay = (
   }
 };
 const SAVED_VIEW_DISPLAY_KEYS: (keyof Display)[] = [
+  "calendarMode", "calendarDateField", "scheduleAnchor", "timelineScale", "showDependencies", "showUnscheduled",
+  "columnOrder",
+  "columnWidths",
   "layout",
   "groupCount",
   "groupBy",
@@ -3040,6 +2981,7 @@ const SAVED_VIEW_DISPLAY_KEYS: (keyof Display)[] = [
   "showSortColumns",
   "sortRules",
   "groupOrder",
+  "groupOrders",
   "hiddenGroups",
   "manualOrders",
   "collapsedSubIssues",
@@ -3072,7 +3014,7 @@ const migrateSavedViewDisplay = (
       next.sortScope = "groups";
       next.showSortColumns = false;
       next.sortRules = [];
-      next.groupOrder = [
+      next.groupOrder = view.display?.groupOrder ?? [
         "In Progress",
         "Todo",
         "Backlog",
@@ -3155,10 +3097,12 @@ function BoardProjectHover({
   project,
   data,
   stats,
+  children,
 }: {
   project: Entity;
   data: ReturnType<typeof useAppStore>["data"];
   stats?: { progress: number; scope: number };
+  children?: React.ReactNode;
 }) {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [point, setPoint] = useState<{ left: number; top: number } | null>(
@@ -3197,17 +3141,18 @@ function BoardProjectHover({
         }, 500);
       }}
       onPointerLeave={close}
+      onClickCapture={close}
     >
-      <Link
+      {children ?? <Link
         className="board-project-badge"
         to={`/project/${project.id}`}
         aria-label="Open project"
-        title={project.name}
+        data-tooltip-label={project.name}
         onClick={(event) => event.stopPropagation()}
       >
         <EntityIcon entity={project} fallback="Box" size={12} />
         <span>{project.name}</span>
-      </Link>
+      </Link>}
       {point &&
         createPortal(
           <div
@@ -3263,8 +3208,13 @@ function ProfileDetails({user,data,issues,self,favorite,onFavorite}:{user:Entity
   return <aside className="profile-details" aria-label="Member details"><header><Avatar user={user} size={34}/><div><strong>{user.name||user.email}</strong><small>{user.username||String(user.email||'').split('@')[0]} · {self?'Online':'Offline'} <i className={self?'online':''}/></small></div>{self?<Dropdown align="right" trigger={<button className="icon-button" aria-label="Open menu"><Icon name="MoreHorizontal" size={14}/></button>}><input autoFocus aria-label="Filter…" placeholder="Filter…"/><Link className="menu-item" role="menuitem" to="/settings/profile">Edit profile</Link></Dropdown>:<button className="icon-button" role="switch" aria-checked={favorite} aria-label={favorite?'Remove from favorites':'Add to favorites'} onClick={onFavorite}><Icon name="Star" size={14} style={favorite?{fill:'currentColor'}:undefined}/></button>}</header><section className="profile-details-fields"><div><span>Email</span><a href={`mailto:${user.email}`}>{user.email}</a></div><div><span>Local time</span><strong>{new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</strong></div>{user.title&&<div><span>Title</span><strong>{user.title}</strong></div>}<div><span>Joined</span><strong title={joinedExact}>{joinedRelative}</strong></div><div><span>Teams</span><span>{teamIds.map(id=>{const team=data.teams.find((item:Entity)=>item.id===id);return team?<Link key={id} to={`/team/${id}/overview`}>{team.name}</Link>:null})}</span></div><div><span>Projects</span><span>{projectIds.map(id=>{const project=data.projects.find((item:Entity)=>item.id===id);return project?<Link key={id} to={`/project/${id}/overview`}>{project.name}</Link>:null})}</span></div></section>{issues.length>0&&<><nav aria-label="Member statistics" role="tablist">{['Labels','Priority','Projects','Teams'].map(name=>{const id=`member-stat-${name.toLowerCase()}`;return <button key={name} id={id} role="tab" aria-selected={tab===name} aria-controls="member-stat-panel" className={tab===name?'active':''} onClick={()=>setTab(name)}>{name}</button>})}</nav><section id="member-stat-panel" role="tabpanel" aria-labelledby={`member-stat-${tab.toLowerCase()}`} className="profile-details-stat">{names.length?names.map(name=><span key={name}>{name}</span>):`No ${tab.toLowerCase()} used`}</section></>}</aside>;
 }
 
+const openIssueComposer = openComposer;
+
+export type IssueViewSettings = { layout: string; display: Display; filters: FilterSpec; searchQuery: string };
+
 export function IssueList({
   teamId: passedTeamId,
+  customerId,
   section: passedSection,
   viewId: passedViewId,
   projectId,
@@ -3277,8 +3227,10 @@ export function IssueList({
   projectDetailsOpen = false,
   onProjectDetailsToggle,
   filterButtonLabel = "Filter issues",
+  onViewSettingsChange,
 }: {
   teamId?: string;
+  customerId?: string;
   section?: string;
   viewId?: string;
   projectId?: string;
@@ -3291,11 +3243,13 @@ export function IssueList({
   projectDetailsOpen?: boolean;
   onProjectDetailsToggle?: () => void;
   filterButtonLabel?: string;
+  onViewSettingsChange?: (settings: IssueViewSettings) => void;
 } = {}) {
   const params = useParams(),
     location = useLocation(),
     navigate = useNavigate(),
     store = useAppStore();
+  const openComposer = (defaults:Record<string,any>={}) => openIssueComposer({...defaults,...(customerId?{directCustomerIds:[customerId]}:{})});
   const labelViewId = params.labelId ?? params.labelGroupId;
   const resolvedLabelView = labelViewRoute(location.pathname, store.data);
   const labelView = resolvedLabelView?.entity;
@@ -3392,7 +3346,7 @@ export function IssueList({
       ? { assigneeId: targetUserId }
       : {};
   const availableLabelGroups = issueLabelGroups(store.data, teamId);
-  const key = `display:${store.data.workspaceId}:${store.user?.id}:${labelViewId ? `label-view:${labelViewId}` : (viewId ?? projectId ?? cycleId ?? (isMine ? `${isProfile ? "profile" : "my"}:${targetUserId}:${mineTab}` : `${teamId ?? "all"}:${section}`))}`;
+  const key = `display:${store.data.workspaceId}:${store.user?.id}:${labelViewId ? `label-view:${labelViewId}` : (viewId ?? (customerId ? "customer:"+customerId : undefined) ?? projectId ?? cycleId ?? (isMine ? `${isProfile ? "profile" : "my"}:${targetUserId}:${mineTab}` : `${teamId ?? "all"}:${section}`))}`;
   const normalizeAssignedFocusLayout = (value: Display): Display =>
     isMine &&
     !isProfile &&
@@ -3417,9 +3371,18 @@ export function IssueList({
     ),
     [insightArchived, setInsightArchived] = useState(false),
     [insightReset, setInsightReset] = useState(0);
+  const [columnEditingKey, setColumnEditingKey] = useState<string | null>(null);
+  const columnEditSnapshot = useRef<{ key: string; columns: Pick<Display, "properties" | "columnOrder" | "columnWidths"> } | null>(null);
+  const columnSaveBaseline = useRef<{ key: string; columns: Pick<Display, "properties" | "columnOrder" | "columnWidths"> } | null>(null);
+  const [columnSavingKey, setColumnSavingKey] = useState<string | null>(null);
+  const [scheduleSavingKey, setScheduleSavingKey] = useState<string|null>(null);
+  const [scheduleSaveError, setScheduleSaveError] = useState<{key:string;message:string}|null>(null);
+  const [columnSaveError, setColumnSaveError] = useState<{ key: string; message: string } | null>(null);
+  useEffect(() => { setColumnEditingKey(null); columnEditSnapshot.current = null; }, [key, editingView]);
   const [groupOrderingOpen, setGroupOrderingOpen] = useState(false);
   const [advancedDisplayOpen, setAdvancedDisplayOpen] = useState(false);
   const displayTrigger = useRef<HTMLButtonElement>(null);
+  const columnTrigger = useRef<HTMLButtonElement>(null);
   const [liveDisplay, setLiveDisplay] = useState<Display>(() => {
     try {
       let saved = migrateDirectTeamSavedDisplay(
@@ -3433,6 +3396,7 @@ export function IssueList({
         importedTriageBoard,
       );
       saved = migrateSavedViewDisplay(key, saved, view);
+      if (isProfile) saved = migrateProfileDisplay(localStorage, key, saved, mineTab);
       const legacyDirectTeamDefault =
         isDirectTeamIssueRoute &&
         displayFingerprint({ ...defaultDisplay, ...saved }) ===
@@ -3441,6 +3405,7 @@ export function IssueList({
         ...defaultDisplay,
         ...(isDirectTeamIssueRoute ? directTeamIssueDisplay : {}),
         ...(projectScoped ? projectIssueDisplay : {}),
+        ...(isProfile ? profileIssueDisplay(mineTab) : {}),
         ...(labelViewId ? labelViewDisplay : {}),
         ...(legacyDirectTeamDefault ? {} : saved),
       });
@@ -3449,6 +3414,7 @@ export function IssueList({
         ...defaultDisplay,
         ...(isDirectTeamIssueRoute ? directTeamIssueDisplay : {}),
         ...(projectScoped ? projectIssueDisplay : {}),
+        ...(isProfile ? profileIssueDisplay(mineTab) : {}),
         ...(labelViewId ? labelViewDisplay : {}),
       });
     }
@@ -3456,7 +3422,7 @@ export function IssueList({
   const savedViewFilter = useMemo<FilterSpec>(() => {
     const raw = view?.filters ?? view?.filter;
     return raw?.conditions
-      ? raw
+      ? unwrapIssueFilter(raw)
       : {
           conditions: Object.entries(raw ?? {}).map(([field, value]) => ({
             field,
@@ -3467,6 +3433,8 @@ export function IssueList({
         };
   }, [view?.filters, view?.filter]);
   const defaultFilter = useMemo<FilterSpec>(() => {
+    // Customer ownership is page scope, not a removable user filter.
+    if(customerId)return {match:"all",conditions:[]};
     const raw =
       insightContext?.filter ??
       (requestedMilestone
@@ -3483,7 +3451,7 @@ export function IssueList({
           }
         : (view?.filters ?? view?.filter));
     return raw?.conditions
-      ? raw
+      ? unwrapIssueFilter(raw)
       : {
           conditions: Object.entries(raw ?? {}).map(([field, value]) => ({
             field,
@@ -3492,14 +3460,15 @@ export function IssueList({
           })),
           match: "all",
         };
-  }, [insightContext, requestedMilestone, view?.filters, view?.filter]);
+  }, [customerId, insightContext, requestedMilestone, view?.filters, view?.filter]);
   const [editDisplay, setEditDisplay] = useState<Display>(() => liveDisplay);
   const [editFilter, setEditFilter] = useState<FilterSpec>(savedViewFilter);
   const display = editingView ? editDisplay : liveDisplay;
+  useEffect(() => { if (display.layout !== "list") setColumnEditingKey(null); }, [display.layout]);
   const setDisplay = editingView ? setEditDisplay : setLiveDisplay;
+  const [collapsed, setCollapsed] = useIssueGroupCollapse(key, display.groupBy, display.subGroupBy);
   const [filterOpen, setFilterOpen] = useState(false),
     [selection, setSelection] = useState<string[]>([]),
-    [collapsed, setCollapsed] = useState<string[]>([]),
     [focus, setFocus] = useState(""),
     [keyboardFocus, setKeyboardFocus] = useState(false),
     [details, setDetails] = useState(!!insightQuery || (isProfile && targetUserId !== store.user?.id)),
@@ -3551,6 +3520,9 @@ export function IssueList({
     });
   const [filter, setFilter] = useRouteFilter(defaultFilter);
   useEffect(() => {
+    onViewSettingsChange?.({ layout: display.layout[0].toUpperCase() + display.layout.slice(1), display, filters: editingView ? editFilter : filter, searchQuery: query });
+  }, [onViewSettingsChange, display, filter, editFilter, editingView, query]);
+  useEffect(() => {
     if (!editingView) return;
     setEditFilter(savedViewFilter);
     setEditDisplay(liveDisplay);
@@ -3599,7 +3571,7 @@ export function IssueList({
     }));
   };
   const saveDefault = () => {
-    if (view) return store.update("views", view.id, { display });
+    if (view) return store.update("views", view.id, { display, layout: display.layout[0].toUpperCase() + display.layout.slice(1) });
     if (team)
       return store.update("teams", team.id, {
         displayDefaults: { ...team.displayDefaults, [section]: display },
@@ -3652,6 +3624,7 @@ export function IssueList({
     saved = migrateDirectTeamSavedDisplay(key, saved, isDirectTeamIssueRoute);
     saved = migrateImportedTriageBoardDisplay(key, saved, importedTriageBoard);
     saved = migrateSavedViewDisplay(key, saved, view);
+    if (isProfile) saved = migrateProfileDisplay(localStorage, key, saved, mineTab);
     if (
       isDirectTeamIssueRoute &&
       displayFingerprint({ ...defaultDisplay, ...saved }) ===
@@ -3796,6 +3769,86 @@ export function IssueList({
       : []),
     ...availableIssueSortFields(store.data.issues),
   ];
+  const columnDefinitions = issueColumnDefinitions(display.properties, availableSortFields.filter(([field]) => field.startsWith("customFields.")));
+  const columnOrder = normalizeIssueColumnOrder(display.columnOrder, columnDefinitions.map(([field]) => field));
+  const availableColumnDefinitions = columnDefinitions.filter(([field]) => {
+    if (field === "projectId" && (projectScoped || display.groupBy === "projectId" || display.subGroupBy === "projectId")) return false;
+    if (field === "activityAt" && !isMine) return false;
+    return true;
+  });
+  const visibleColumnFields = availableColumnDefinitions.filter(([field]) => isIssueColumnVisible(field, display.properties, projectScoped)).map(([field]) => field);
+  const columnsEditing = display.layout === "list" && columnEditingKey === key;
+  const columnWidths = normalizeIssueColumnWidths(display.columnWidths);
+  const columnsAligned = display.layout === "list" && (columnsEditing || Object.keys(columnWidths).length > 0);
+  const columnsCustomized = issueColumnSettingsFingerprint(display) !== issueColumnSettingsFingerprint(baselineDisplay);
+  const columnFailure = store.failures.find(failure => failure.kind === "views" && failure.entityId === view?.id && failure.data.display);
+  const columnConflict = store.conflicts.some(conflict => conflict.kind === "views" && conflict.entityId === view?.id);
+  const columnError = columnSaveError?.key === key ? columnSaveError.message : columnFailure?.message || (columnConflict ? "A newer view change needs conflict resolution before these columns can sync." : "");
+  const closeColumns = () => {
+    setColumnEditingKey(null);
+    columnEditSnapshot.current = null;
+    if (parent.current && !Object.keys(columnWidths).length) parent.current.scrollLeft = 0;
+    columnTrigger.current?.focus();
+  };
+  const cancelColumns = () => {
+    if (columnSavingKey === key) return;
+    const previous = columnFailure && columnSaveBaseline.current?.key === key ? columnSaveBaseline.current.columns
+      : columnEditSnapshot.current?.key === key ? columnEditSnapshot.current.columns : baselineDisplay;
+    if (columnFailure) void store.resolveFailure(columnFailure.id, "discard");
+    setDisplay(current => ({ ...current, properties: [...previous.properties], columnOrder: previous.columnOrder, columnWidths: previous.columnWidths }));
+    if (parent.current && !Object.keys(previous.columnWidths || {}).length) parent.current.scrollLeft = 0;
+    setColumnSaveError(null);
+    closeColumns();
+  };
+  const saveColumnsToView = async () => {
+    if (columnSavingKey === key || columnConflict) return;
+    const savingKey = key;
+    setColumnSavingKey(savingKey);
+    setColumnSaveError(null);
+    try {
+      // Built-in views keep their scoped local preferences. In the full view
+      // editor, the outer Save still owns publishing the complete draft.
+      if (columnFailure) await store.resolveFailure(columnFailure.id, "retry");
+      else if (view && !editingView && columnsCustomized) {
+        columnSaveBaseline.current = { key, columns: { properties: [...baselineDisplay.properties], columnOrder: baselineDisplay.columnOrder, columnWidths: baselineDisplay.columnWidths } };
+        await store.update("views", view.id, { display: withSavedIssueColumns(view.display, { properties: display.properties, columnOrder, columnWidths }) });
+      }
+      closeColumns();
+    } catch (error) {
+      setColumnSaveError({ key: savingKey, message: error instanceof Error ? error.message : "Could not save columns to this view." });
+    } finally {
+      setColumnSavingKey(current => current === savingKey ? null : current);
+    }
+  };
+  const columnControl = display.layout === "list" ? (
+    <button
+      type="button"
+      ref={columnTrigger}
+      className={`icon-button circle-button ${columnsEditing ? "active" : ""}`}
+      aria-label="Edit columns"
+      title="Edit columns"
+      aria-expanded={columnsEditing}
+      onClick={() => {
+        if (columnEditingKey !== key) columnEditSnapshot.current = { key, columns: {
+          properties: [...display.properties], columnOrder: display.columnOrder ? [...display.columnOrder] : undefined,
+          columnWidths: display.columnWidths ? { ...display.columnWidths } : undefined,
+        } };
+        setColumnEditingKey(key);
+      }}
+    >
+      <Icon name="GripVertical" size={16} />
+    </button>
+  ) : null;
+  const columnSaveControls = (
+    <div className="issue-column-save">
+      <span hidden={columnsEditing}>{editingView ? "Columns are included when you save this view." : !view ? "Save a view to reuse this column layout." : columnError ? "Column settings could not be saved." : columnsCustomized ? "Column settings have unsaved changes." : store.pending ? "Column settings saved locally; sync pending." : "Column settings saved to this view."}</span>
+      <button type="button" className="column-save-primary"
+        disabled={columnSavingKey === key || columnConflict}
+        onClick={() => void saveColumnsToView()}>{columnSavingKey === key ? "Saving…" : "Save to View"}</button>
+      <button type="button" disabled={columnSavingKey === key} onClick={cancelColumns}>Cancel</button>
+      {!!columnError && <p role="alert">{columnError}</p>}
+    </div>
+  );
   const customerFiltering =
     usesCustomerMetrics(filter) ||
     display.orderBy.startsWith("customer") ||
@@ -3813,9 +3866,10 @@ export function IssueList({
               (details && insightArchived)),
         )
         .map((e) =>
-          customerFiltering ? withCustomerMetrics(e, customerMetrics) : e,
+          withCustomerAssignments(customerFiltering ? withCustomerMetrics(e, customerMetrics) : e, store.data.projects, store.data.customers),
         )
         .filter((e) => {
+          if (customerId && !e.effectiveCustomerIds.includes(customerId)) return false;
           if (issueIds !== undefined) return true;
           const status = statuses.find((s) => s.id === e.statusId);
           if (
@@ -3889,6 +3943,8 @@ export function IssueList({
       scopedLabelIds,
       store.data.issues,
       issueIds,
+      customerId,
+      store.data.customers,
       passedAssigneeId,
       view,
       store.data.projects,
@@ -4162,11 +4218,15 @@ export function IssueList({
         );
     }
   }, [matching, store.initialSyncing]);
+  const savedGroupOrder = display.groupOrders?.[display.groupBy] ?? display.groupOrder;
+  const secondaryGroupOrder = display.groupOrders?.[display.subGroupBy];
   const effectiveGroupOrder =
-    display.groupOrder?.length ||
+    isProfile && display.groupBy === "statusId" && !savedGroupOrder?.length
+      ? profileStatusOrder(statuses)
+      : savedGroupOrder?.length ||
     section !== "active" ||
     display.groupBy !== "statusId"
-      ? display.groupOrder
+      ? savedGroupOrder
       : ["started", "unstarted"].flatMap((type) =>
           statuses
             .filter(
@@ -4190,6 +4250,7 @@ export function IssueList({
       teamId,
       display.showEmpty,
       effectiveGroupOrder,
+      secondaryGroupOrder,
     );
     for (const group of columns)
       for (const row of [group, ...(group.subgroups || [])])
@@ -4219,6 +4280,7 @@ export function IssueList({
     display.groupCount,
     display.showEmpty,
     effectiveGroupOrder,
+    secondaryGroupOrder,
     store.data,
     teamId,
   ]);
@@ -4240,6 +4302,7 @@ export function IssueList({
       teamId,
       display.showEmpty,
       effectiveGroupOrder,
+      secondaryGroupOrder,
     );
     const groups = allGroups.filter(
       (g) => !(display.hiddenGroups?.[display.groupBy] || []).includes(g.id),
@@ -4339,6 +4402,7 @@ export function IssueList({
     display.subGroupBy,
     display.showEmpty,
     effectiveGroupOrder,
+    secondaryGroupOrder,
     display.hiddenGroups,
     display.nestedSubIssues,
     display.collapsedSubIssues,
@@ -4367,6 +4431,8 @@ export function IssueList({
   const virtualizer = useVirtualizer({
     count: flat.length,
     getScrollElement: () => parent.current,
+    paddingStart: columnsEditing ? ISSUE_COLUMN_HEADER_HEIGHT : 0,
+    scrollPaddingStart: columnsEditing ? ISSUE_COLUMN_HEADER_HEIGHT : 0,
     estimateSize: (index) => (flat[index]?.type === "group" ? 40 : 44),
     overscan: 12,
     rangeExtractor: (range) => {
@@ -4416,12 +4482,13 @@ export function IssueList({
     () =>
       [
         ...new Set(
-          orderedIssues.map((issue) => issueName(issue).replace(/\d/g, "0")),
+          // Column sizing belongs to the full filtered view, not its disclosure state.
+          matching.map((issue) => issueName(issue).replace(/\d/g, "0")),
         ),
       ]
         .sort()
         .join("\n"),
-    [orderedIssues],
+    [matching],
   );
   const [identifierColumnWidth, setIdentifierColumnWidth] = useState(52);
   useLayoutEffect(() => {
@@ -4431,7 +4498,7 @@ export function IssueList({
       if (canceled) return;
       const probe = document.createElement("span");
       probe.style.cssText =
-        'position:fixed;visibility:hidden;pointer-events:none;white-space:pre;font-family:"Inter Variable";font-size:13px;font-weight:450;font-feature-settings:"calt","cpsp","tnum";letter-spacing:-.02em';
+        'position:fixed;visibility:hidden;pointer-events:none;white-space:pre;font-family:"Inter Variable";font-size:14px;font-weight:450;font-feature-settings:"calt","cpsp","tnum";letter-spacing:-.02em';
       document.body.append(probe);
       let width = 0;
       for (const text of identifierSamples.split("\n")) {
@@ -4980,6 +5047,18 @@ export function IssueList({
       document.removeEventListener("scroll", scroll, true);
     };
   }, [!!focusDrag]);
+  const commitGroupOrder = (field: string, ids: string[]) => {
+    setDisplay(current => {
+      const order = mergeSectionOrder(current.groupOrders?.[field], ids);
+      return { ...current, groupOrders: { ...current.groupOrders, [field]: order },
+        ...(field === current.groupBy ? { groupOrder: order } : {}) };
+    });
+  };
+  const sectionReorder = useSectionReorder(key, {
+    [display.groupBy]: allGroups.map(group => group.id),
+    ...(display.subGroupBy !== 'none' && display.subGroupBy !== display.groupBy
+      ? { [display.subGroupBy]: swimlanes.map(group => group.id) } : {}),
+  }, commitGroupOrder);
   const dragIds = useRef<string[]>([]);
   const dragOverIssue = (event: React.DragEvent, issue: Entity) => {
     if (!event.dataTransfer.types.includes("application/x-parabolic-issues"))
@@ -5052,6 +5131,7 @@ export function IssueList({
     group: NestedIssueGroup,
     beforeId?: string,
   ) => {
+    if (event.dataTransfer.types.includes(SECTION_DRAG_TYPE)) return;
     event.preventDefault();
     event.stopPropagation();
     setDropTarget(null);
@@ -5218,11 +5298,21 @@ export function IssueList({
         on {myActivityDateLabel(issue.activityAt)}
       </time>
     );
+  const inlineProperty = (issue: Entity, field: Property, children: React.ReactNode, triggerClassName = "inline-field-button") => (
+    <PropertyPicker inline field={field} value={issue[field]} teamId={issue.teamId} projectId={issue.projectId}
+      triggerClassName={triggerClassName} optionsOverride={field === "statusId" ? issue.sharedStatuses : undefined}
+      onChange={value => void store.update("issues", issue.id, { [field]: value, ...(field === "projectId" && value !== issue.projectId ? { milestoneId: null } : {}) })}>
+      {children}
+    </PropertyPicker>
+  );
   const extraProperties = (issue: Entity, includeActivity = true) => {
     const customer = customerMetrics.get(issue.id);
     const since = lastStatusTimes.get(issue.id) ?? issue.createdAt;
     return (
       <>
+        <IssueColumn id="effectiveCustomerIds">
+        {isIssueColumnVisible("effectiveCustomerIds", display.properties) && issue.effectiveCustomerIds?.length > 0 && <CustomerAssignmentControl entity={issue} kind="issues"/>}
+        </IssueColumn>
         {display.properties
           .filter(
             (field) =>
@@ -5244,8 +5334,13 @@ export function IssueList({
                 ? raw.value
                 : raw;
             if (value == null) return null;
+            if (field !== "completedAt") {
+              const customKey = field.startsWith("customFields.") ? field.slice(13) : null;
+              const label = availableIssueSortFields([issue]).find(([key]) => key === field)?.[1] || field;
+              return <IssueColumn id={field} key={field}><InlineIssueValue label={label} value={value} date={field === "startDate"} onChange={next => store.update("issues", issue.id, customKey ? { customFields: { ...issue.customFields, [customKey]: raw && typeof raw === "object" && !Array.isArray(raw) ? { ...raw, value: next } : next } } : { [field]: next })} /></IssueColumn>;
+            }
             return (
-              <span
+              <IssueColumn id={field} key={field}><span
                 className="small muted"
                 key={field}
                 title={
@@ -5255,24 +5350,29 @@ export function IssueList({
                 }
               >
                 {String(value)}
-              </span>
+              </span></IssueColumn>
             );
           })}
+        <IssueColumn id="cycleId">
         {display.properties.includes("cycleId") && issue.cycleId && (
-          <Badge>
+          inlineProperty(issue, "cycleId", <Badge>
             <Icon name="Repeat" size={12} />
             {store.data.cycles.find((c) => c.id === issue.cycleId)?.name}
-          </Badge>
+          </Badge>)
         )}
+        </IssueColumn>
+        <IssueColumn id="milestoneId">
         {display.properties.includes("milestoneId") && issue.milestoneId && (
-          <Badge>
+          inlineProperty(issue, "milestoneId", <Badge>
             <Icon name="Diamond" size={12} />
             {
               store.data.milestones.find((m) => m.id === issue.milestoneId)
                 ?.name
             }
-          </Badge>
+          </Badge>)
         )}
+        </IssueColumn>
+        <IssueColumn id="links">
         {display.properties.includes("links") &&
           (issue.links?.length ?? 0) > 0 && (
             <Badge>
@@ -5280,6 +5380,8 @@ export function IssueList({
               {issue.links.length}
             </Badge>
           )}
+        </IssueColumn>
+        <IssueColumn id="customerCount">
         {display.properties.includes("customerCount") && customer && (
           <Badge>
             <Icon
@@ -5290,6 +5392,8 @@ export function IssueList({
             {customer.customerCount === 1 ? "customer" : "customers"}
           </Badge>
         )}
+        </IssueColumn>
+        <IssueColumn id="customerRevenue">
         {display.properties.includes("customerRevenue") && customer && (
           <Badge>
             {new Intl.NumberFormat(undefined, {
@@ -5298,6 +5402,8 @@ export function IssueList({
             {workspace?.customerSettings?.revenueUnit ?? "USD"}
           </Badge>
         )}
+        </IssueColumn>
+        <IssueColumn id="timeInStatus">
         {display.properties.includes("timeInStatus") && (
           <span
             className="small muted"
@@ -5310,10 +5416,13 @@ export function IssueList({
             d in status
           </span>
         )}
-        {includeActivity && activityDate(issue)}
+        </IssueColumn>
+        {includeActivity && <IssueColumn id="activityAt">{activityDate(issue)}</IssueColumn>}
+        <IssueColumn id="updatedAt">
         {display.properties.includes("updatedAt") && (
           <time className="small muted">{relativeDate(issue.updatedAt)}</time>
         )}
+        </IssueColumn>
       </>
     );
   };
@@ -5329,6 +5438,7 @@ export function IssueList({
     return (
       <div
         data-issue-id={issue.id}
+        aria-label={display.properties.includes("hideTitle") ? `${issueName(issue)}: ${issue.title}` : undefined}
         data-focus-drag-group={
           group.path.find((part) => part.field === "focus")?.id
         }
@@ -5338,9 +5448,9 @@ export function IssueList({
         data-first-selected={selectionEdges.get(issue.id)?.first}
         data-last-selected={selectionEdges.get(issue.id)?.last}
         style={
-          display.nestedSubIssues
+          display.nestedSubIssues && !columnsAligned
             ? { paddingLeft: 16 + treeDepth * 20 }
-            : undefined
+            : columnsAligned ? { "--issue-tree-indent": `${treeDepth * 20}px` } as React.CSSProperties : undefined
         }
         aria-level={display.nestedSubIssues ? treeDepth + 1 : undefined}
         className={`issue-row ${selection.includes(issue.id) ? "selected" : ""} ${focus === issue.id ? "focused" : ""}`}
@@ -5406,8 +5516,11 @@ export function IssueList({
             ) : null}
           </span>
         </button>
+        <OrderedIssueColumns order={columnsAligned || display.columnOrder?.length ? columnOrder : undefined} visibleFields={columnsAligned ? visibleColumnFields : undefined}>
+        <IssueColumn id="priority">
         {display.properties.includes("priority") && (
           <PropertyPicker
+            inline
             field="priority"
             value={issue.priority}
             onChange={(v) =>
@@ -5418,11 +5531,16 @@ export function IssueList({
             <PriorityIcon priority={issue.priority} />
           </PropertyPicker>
         )}
+        </IssueColumn>
+        <IssueColumn id="identifier">
         {display.properties.includes("identifier") && (
           <span className="issue-identifier">{issueName(issue)}</span>
         )}
+        </IssueColumn>
+        <IssueColumn id="statusId">
         {display.properties.includes("statusId") && (
           <PropertyPicker
+            inline
             field="statusId"
             optionsOverride={issue.sharedStatuses}
             value={issue.statusId}
@@ -5435,7 +5553,9 @@ export function IssueList({
             <StatusIcon status={status} size={14} />
           </PropertyPicker>
         )}
-        <span className="issue-row-title">
+        </IssueColumn>
+        <IssueColumn id="title">
+        {isIssueColumnVisible("title", display.properties) && <span className="issue-row-title">
           {display.nestedSubIssues && hasChildren && (
             <button
               className="issue-tree-toggle"
@@ -5469,7 +5589,9 @@ export function IssueList({
             <Icon name="ArrowUpRight" size={13} />
           )}
           {issue.title}
-        </span>
+        </span>}
+        </IssueColumn>
+        <IssueColumn id="labelIds">
         {display.properties.includes("labelIds") &&
           (issue.labelIds ?? []).map((id: string) => {
             const label = store.data.labels.find((l) => l.id === id);
@@ -5479,39 +5601,39 @@ export function IssueList({
                 color={label.color}
                 description={label.description}
               >
-                <Link
-                  to={`/label/${label.id}`}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {label.name}
-                </Link>
+                {inlineProperty(issue, "labelIds", label.name)}
               </Badge>
             ) : null;
           })}
+        </IssueColumn>
+        <IssueColumn id="projectId">
         {!projectScoped &&
           display.groupBy !== "projectId" &&
           display.subGroupBy !== "projectId" &&
           display.properties.includes("projectId") &&
           project && (
-            <Link
-              className="issue-project-badge"
-              to={`/project/${project.id}`}
-              onClick={(e) => e.stopPropagation()}
-            >
+            inlineProperty(issue, "projectId", <>
               <EntityIcon entity={project} fallback="Box" size={14} />
               <span>{project.name}</span>
-            </Link>
+            </>, "issue-project-badge")
           )}
+        </IssueColumn>
+        <IssueColumn id="dueDate">
         {issue.dueDate && display.properties.includes("dueDate") && (
-          <DueDateIndicator value={issue.dueDate} now={calendarDay} />
+          <InlineDueDatePicker value={issue.dueDate} now={calendarDay} onChange={dueDate => store.update("issues", issue.id, { dueDate })} />
         )}
+        </IssueColumn>
+        <IssueColumn id="slaStatus">
         {issue.slaDueAt && display.properties.includes("slaStatus") && (
-          <SlaIndicator issue={issue} />
-        )}{" "}
-        {(projectScoped || display.properties.includes("estimate")) &&
+          <InlineIssueSla issue={issue} />
+        )}
+        </IssueColumn>
+        <IssueColumn id="estimate">
+        {isIssueColumnVisible("estimate", display.properties, projectScoped) &&
           issue.estimate != null && (
             <span className="issue-estimate-control">
               <PropertyPicker
+                inline
                 field="estimate"
                 value={issue.estimate}
                 teamId={issue.teamId}
@@ -5532,11 +5654,17 @@ export function IssueList({
               </PropertyPicker>
             </span>
           )}
+        </IssueColumn>
         {extraProperties(issue, false)}
+        <IssueColumn id="assigneeId">
         {display.properties.includes("assigneeId") && (
-          <Avatar user={person} size={18} />
+          inlineProperty(issue, "assigneeId", <Avatar user={person} size={18} />, "inline-field-button inline-assignee-button")
         )}
+        </IssueColumn>
+        <IssueColumn id="activityAt">
         {activityDate(issue)}
+        </IssueColumn>
+        <IssueColumn id="createdAt">
         {display.properties.includes("createdAt") && (
           <time className="issue-row-date">
             {new Date(issue.createdAt).toLocaleDateString(undefined, {
@@ -5545,6 +5673,8 @@ export function IssueList({
             })}
           </time>
         )}
+        </IssueColumn>
+        </OrderedIssueColumns>
       </div>
     );
   };
@@ -5603,49 +5733,49 @@ export function IssueList({
             <span className="board-card-identifier">{issueName(issue)}</span>
           )}
           {parentIssue && (
-            <span className="board-card-parent" title={parentIssue.title}>
+            <span className="board-card-parent" data-tooltip-label={parentIssue.title}>
               <Icon name="ChevronRight" size={11} />
               <span>{parentIssue.title}</span>
             </span>
           )}
           <span className="spacer" />
           {display.properties.includes("assigneeId") && (
-            <Avatar
+            inlineProperty(issue, "assigneeId", <Avatar
               user={store.data.users.find((u) => u.id === issue.assigneeId)}
               size={18}
-            />
+            />, "inline-field-button inline-assignee-button")
           )}
         </div>
         <div className="board-card-title">
           {display.properties.includes("statusId") && (
-            <StatusIcon
+            inlineProperty(issue, "statusId", <StatusIcon
               status={statuses.find((st) => st.id === issue.statusId)}
-            />
+            />)
           )}
           <span>{issue.title}</span>
         </div>
         <div className="board-card-properties">
           {display.properties.includes("priority") && (
-            <span className="board-card-priority-chip">
+            inlineProperty(issue, "priority", <span className="board-card-priority-chip">
               <PriorityIcon priority={issue.priority} />
-            </span>
+            </span>)
           )}
           {display.properties.includes("projectId") && project && (
             <BoardProjectHover
               project={project}
               data={store.data}
               stats={boardProjectStatistics.get(project.id)}
-            />
+            >{inlineProperty(issue, "projectId", <><EntityIcon entity={project} fallback="Box" size={12} /><span>{project.name}</span></>, "board-project-badge")}</BoardProjectHover>
           )}
           {display.properties.includes("estimate") &&
             issue.estimate != null && (
-              <Badge className="board-card-estimate">
+              inlineProperty(issue, "estimate", <Badge className="board-card-estimate">
                 <EntityIcon entity={{ icon: "Estimate" }} size={12} />
                 {estimateLabel(
                   issue.estimate,
                   store.data.teams.find((team) => team.id === issue.teamId),
                 )}
-              </Badge>
+              </Badge>)
             )}
           {childIssues.length > 0 && (
             <Badge className="board-card-sub-issue-progress">
@@ -5671,20 +5801,15 @@ export function IssueList({
                   color={label.color}
                   description={label.description}
                 >
-                  <Link
-                    to={`/label/${label.id}`}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {label.name}
-                  </Link>
+                  {inlineProperty(issue, "labelIds", label.name)}
                 </Badge>
               ) : null;
             })}
           {display.properties.includes("dueDate") && issue.dueDate && (
-            <DueDateIndicator value={issue.dueDate} now={calendarDay} />
+            <InlineDueDatePicker value={issue.dueDate} now={calendarDay} onChange={dueDate => store.update("issues", issue.id, { dueDate })} />
           )}
           {display.properties.includes("slaStatus") && issue.slaDueAt && (
-            <SlaIndicator issue={issue} />
+            <InlineIssueSla issue={issue} />
           )}
           {extraProperties(issue)}
         </div>
@@ -5747,6 +5872,7 @@ export function IssueList({
         ? { labelIds: [labelView.id] }
         : {}),
       ...issueGroupCreationDefaults(group, store.data),
+      ...(customerId?{directCustomerIds:[customerId]}:{}),
       ...assignedCreationDefaults,
     });
   const renderGroupHeader = (
@@ -5755,16 +5881,16 @@ export function IssueList({
     board = false,
   ) => (
     <div
-      className={"group-header" + (depth ? " issue-subgroup-header" : "")}
+      className={"group-header reorderable-section" + (depth ? " issue-subgroup-header" : "")}
+      {...sectionReorder.headerProps(group.path.at(-1)!.field, group.id, board, e => moveFromDrag(e, group))}
       data-group-key={group.key}
       data-focus-drag-group={
         group.path.find((part) => part.field === "focus")?.id
       }
       data-group-field={group.path.at(-1)?.field}
       data-group-id={group.id}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => moveFromDrag(e, group)}
     >
+      {sectionReorder.handle(group.path.at(-1)!.field, group.id, group.name)}
       {!board && (
         <button
           className="icon-button group-toggle"
@@ -5893,7 +6019,7 @@ export function IssueList({
 
   return (
     <div
-      className={`issue-view ${embedded ? "embedded-issues" : ""} ${projectScoped ? "project-scoped-issues" : ""} ${editingView ? "editing-saved-view" : ""}`}
+      className={`issue-view ${isProfile ? "profile-issues" : ""} ${embedded ? "embedded-issues" : ""} ${projectScoped ? "project-scoped-issues" : ""} ${editingView ? "editing-saved-view" : ""}`}
       data-focused-id={focus}
       data-selected-ids={selection.join(",")}
     >
@@ -6028,6 +6154,7 @@ export function IssueList({
                       store.data,
                       "Member unavailable",
                     )}
+                    <Icon name="ChevronDown" size={12} />
                   </button>
                 }
               >
@@ -6415,7 +6542,7 @@ export function IssueList({
             )}
           </span>
         )}
-        {(filterConditionCount(filter) > 0 || query) && (
+        {(customerId || filterConditionCount(filter) > 0 || query) && (
           <button
             type="button"
             className="icon-button circle-button"
@@ -6426,9 +6553,11 @@ export function IssueList({
             <Icon name="Layers" size={14} />
           </button>
         )}
+        {!editingView && columnControl}
         <IssueFilterMenu
           value={filter}
           onChange={setFilter}
+          excludeFields={customerId ? ['effectiveCustomerIds'] : []}
           teamId={teamId}
           projectId={projectId}
           issues={filterCandidates}
@@ -6475,7 +6604,12 @@ export function IssueList({
                     },
                   })
                 }
-                onOrder={(ids) => setDisplay({ ...display, groupOrder: ids })}
+                onOrder={(ids) => commitGroupOrder(display.groupBy, ids)}
+                onSave={view && !editingView ? () => {
+                  void store.update("views", view.id, { display: {
+                    ...view.display, groupOrder: display.groupOrder, groupOrders: display.groupOrders,
+                  } }).then(() => store.toast(store.pending ? "Group order saved locally; sync pending" : "Group order saved to view")).catch(error => store.toast(error.message));
+                } : undefined}
                 onBack={() => setGroupOrderingOpen(false)}
               />
             ) : (
@@ -6485,7 +6619,7 @@ export function IssueList({
                   role="tablist"
                   aria-label="Issue layout"
                 >
-                  {(["list", "board"] as const).map((layout) => (
+                  {(["list", "board", "calendar", "timeline"] as const).map((layout) => (
                     <button
                       key={layout}
                       role="tab"
@@ -6503,12 +6637,10 @@ export function IssueList({
                           event.key === "Home"
                             ? "list"
                             : event.key === "End"
-                              ? "board"
-                              : layout === "list"
-                                ? "board"
-                                : "list";
+                              ? "timeline"
+                              : (["list", "board", "calendar", "timeline"] as const)[(["list", "board", "calendar", "timeline"].indexOf(layout)+(event.key === "ArrowLeft" ? 3 : 1))%4];
                         const next =
-                          isMine &&
+                          requested === "board" && isMine &&
                           !isProfile &&
                           mineTab === "Assigned" &&
                           display.groupBy === "focus"
@@ -6523,7 +6655,7 @@ export function IssueList({
                           event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
                             "[role=tab]",
                           );
-                        tabs?.[next === "list" ? 0 : 1]?.focus();
+                        tabs?.[["list", "board", "calendar", "timeline"].indexOf(next)]?.focus();
                       }}
                       disabled={
                         layout === "board" &&
@@ -6543,8 +6675,8 @@ export function IssueList({
                         })
                       }
                     >
-                      <IssueLayoutIcon layout={layout} />
-                      <span>{layout === "list" ? "List" : "Board"}</span>
+                      {layout === "list" || layout === "board" ? <IssueLayoutIcon layout={layout} /> : <Icon name={layout === "calendar" ? "CalendarDays" : "GanttChart"} size={14}/>}
+                      <span>{layout === "timeline" ? "Timeline / Gantt" : layout[0].toUpperCase()+layout.slice(1)}</span>
                     </button>
                   ))}
                 </div>
@@ -6553,6 +6685,7 @@ export function IssueList({
                     "groupBy",
                     "Grouping",
                     [
+                      "effectiveCustomerIds",
                       "none",
                       "statusId",
                       "assigneeId",
@@ -6574,6 +6707,7 @@ export function IssueList({
                     "subGroupBy",
                     "Sub-grouping",
                     [
+                      "effectiveCustomerIds",
                       "none",
                       "statusId",
                       "assigneeId",
@@ -6609,7 +6743,7 @@ export function IssueList({
                     ],
                   ],
                 ]
-                  .filter(([key]) => key !== "orderBy")
+                  .filter(([key]) => key !== "orderBy" && (display.layout === "list" || display.layout === "board"))
                   .map(([key, label, values]) => (
                     <React.Fragment key={key as string}>
                       <div className="display-row issue-grouping-row">
@@ -6686,6 +6820,10 @@ export function IssueList({
                                   }
                                 : {}),
                               [key as string]: next,
+                              ...(key === "groupBy" ? {
+                                groupOrders: { ...display.groupOrders, [display.groupBy]: effectiveGroupOrder ?? [] },
+                                groupOrder: display.groupOrders?.[next] ?? [],
+                              } : {}),
                               ...(key === "groupBy" &&
                               next === "focus" &&
                               isMine &&
@@ -6735,7 +6873,8 @@ export function IssueList({
                                       projectLabelIds: "Project label",
                                       parentId: "Parent issue",
                                       teamId: "Team",
-                                      customerId: "Customer",
+                                      customerId: "Legacy customer",
+                                      effectiveCustomerIds: "Customer",
                                       milestoneId: "Milestone",
                                       slaStatus: "SLA status",
                                       focus: "Focus",
@@ -7041,11 +7180,12 @@ export function IssueList({
                       />
                     </label>
                   )}
-                <div className="display-properties-heading">
+                {(display.layout === "list" || display.layout === "board") && <><div className="display-properties-heading">
                   Display properties
                 </div>
                 <div className="property-toggle-list">
                   {[
+                    "effectiveCustomerIds",
                     "identifier",
                     "statusId",
                     "assigneeId",
@@ -7090,14 +7230,12 @@ export function IssueList({
                       <button
                         key={field}
                         aria-label={`Display ${field}`}
-                        aria-pressed={display.properties.includes(field)}
-                        className={`badge ${display.properties.includes(field) ? "active" : ""}`}
+                        aria-pressed={isIssueColumnVisible(field, display.properties, projectScoped)}
+                        className={`badge ${isIssueColumnVisible(field, display.properties, projectScoped) ? "active" : ""}`}
                         onClick={() =>
                           setDisplay({
                             ...display,
-                            properties: display.properties.includes(field)
-                              ? display.properties.filter((p) => p !== field)
-                              : [...display.properties, field],
+                            properties: setIssueColumnVisible(display.properties, field, !isIssueColumnVisible(field, display.properties, projectScoped)),
                           })
                         }
                       >
@@ -7113,7 +7251,8 @@ export function IssueList({
                             estimate: "Estimate",
                             labelIds: "Labels",
                             links: "Links",
-                            customerCount: "Customers",
+                            effectiveCustomerIds: "Customer",
+                            customerCount: "Request customers",
                             customerRevenue: "Customer revenue",
                             timeInStatus: "Time in status",
                             createdAt: "Created",
@@ -7130,7 +7269,7 @@ export function IssueList({
                       </button>
                     ))}
                 </div>
-                {!view &&
+                </>}{!view &&
                   !isMine &&
                   !labelViewId &&
                   !projectScoped &&
@@ -7153,8 +7292,7 @@ export function IssueList({
         {!projectScoped &&
           (!isMine || isProfile) &&
           !labelViewId &&
-          !isDirectTeamIssueRoute &&
-          !view && (
+          !isDirectTeamIssueRoute && !embedded && (
             <button
               className={`icon-button circle-button ${details ? "active" : ""}`}
               aria-label={isProfile?(details?"Close details":"Open details"):"Toggle insights"}
@@ -7200,12 +7338,14 @@ export function IssueList({
         <SavedViewInlineEditor
           key={`${view.id}:${view.version ?? ""}`}
           view={view}
+          columnControl={columnControl}
           onCancel={closeViewEditor}
           onSave={async (draft) => {
             const saved = await store.update("views", view.id, {
               ...draft,
               filters: editFilter,
               display: editDisplay,
+              layout: editDisplay.layout[0].toUpperCase()+editDisplay.layout.slice(1),
             });
             if (saved !== null) closeViewEditor();
             return saved;
@@ -7226,6 +7366,7 @@ export function IssueList({
           value={editingView ? editFilter : filter}
           onChange={editingView ? setEditFilter : setFilter}
           teamId={teamId}
+          excludeFields={customerId ? ['effectiveCustomerIds'] : []}
         />
       )}
       {!filterOpen && filterConditionCount(filter) > 0 && (
@@ -7253,6 +7394,9 @@ export function IssueList({
             <Icon name="X" size={12} />
           </button>
         </div>
+      )}
+      {view && !editingView && (columnsCustomized || columnError) && (columnEditingKey !== key || display.layout !== "list") && (
+        <div className="issue-column-save-bar" aria-label="Unsaved view column settings">{columnSaveControls}</div>
       )}
       {display.layout === "list" && display.showSortColumns && (
         <IssueSortColumns
@@ -7331,13 +7475,26 @@ export function IssueList({
           }}
         />
       )}
-      <div className="issue-view-content">
+      {(display.layout === "calendar" || display.layout === "timeline") && !editingView && !onViewSettingsChange && <div className="schedule-save-bar">
+        <span role="status">{scheduleSavingKey===key ? "Saving view settings…" : scheduleSaveError?.key===key ? scheduleSaveError.message : displayCustomized ? "Unsaved view settings" : store.pending ? "Saved locally; sync pending" : "View settings saved"}</span>
+        <button type="button" disabled={scheduleSavingKey===key||!displayCustomized} onClick={()=>{setScheduleSavingKey(key);setScheduleSaveError(null);void Promise.resolve(saveDefault()).then(()=>store.toast(store.pending?"View saved locally; sync pending":"View settings saved")).catch(error=>{setScheduleSaveError({key,message:error.message});store.toast(error.message);}).finally(()=>setScheduleSavingKey(null));}}>{view?"Save view settings":"Save as default"}</button>
+        <button type="button" onClick={()=>setSavingView(true)}>Save as new view</button>
+      </div>}
+      <IssueColumnEditor key={key} enabled={columnsEditing} aligned={columnsAligned} fields={availableColumnDefinitions} visibleFields={visibleColumnFields} order={columnOrder}
+        widths={columnWidths}
+        onWidthsChange={columnWidths => setDisplay(current => ({ ...current, columnWidths }))}
+        persistence={columnSaveControls}
+        onVisibilityChange={(field, visible) => setDisplay(current => ({ ...current, columnOrder, properties: setIssueColumnVisible(current.properties, field, visible) }))}
+        onChange={columnOrder => setDisplay(current => ({ ...current, columnOrder }))}
+        onCancel={cancelColumns}>
+      {columnHeader => <div className="issue-view-content">
         <div
           className={`issue-list-scroll ${display.layout === "board" ? "board-scroll" : ""} ${display.layout === "board" && swimlanes.length ? "has-swimlanes" : ""}`}
           ref={parent}
           {...dragEdgeScroll}
         >
-          {display.layout === "board" &&
+          {columnsEditing && !(flat.length && !filteredEmpty) && <div className="issue-column-empty-table" role="table" aria-label="Issue columns">{columnHeader}</div>}
+          {display.layout === "calendar" || display.layout === "timeline" ? <ScheduleView key={key} items={orderedIssues} layout={display.layout} options={display} onOptions={patch=>setDisplay(current=>({...current,...patch}))} onOpen={item=>openListIssue(item.id)}/> : display.layout === "board" &&
           swimlanes.length &&
           !filteredEmpty &&
           groups.length > 0 ? (
@@ -7348,6 +7505,7 @@ export function IssueList({
               scrollRef={parent}
               focusedId={focus}
               renderHeader={(group) => renderGroupHeader(group, 0, true)}
+              sectionReorder={sectionReorder}
               renderCell={(group) => (
                 <>
                   <VirtualBoardItems
@@ -7415,6 +7573,7 @@ export function IssueList({
                 } as React.CSSProperties
               }
             >
+              {columnHeader}
               {virtualizer.getVirtualItems().map((row) => {
                 const item = flat[row.index];
                 return (
@@ -7429,7 +7588,7 @@ export function IssueList({
                       top:
                         item.type === "group" &&
                         stickyIndices.current.includes(row.index)
-                          ? item.depth * 40
+                          ? item.depth * 40 + (columnsEditing ? ISSUE_COLUMN_HEADER_HEIGHT : 0)
                           : 0,
                       left: 0,
                       width: "100%",
@@ -7735,13 +7894,15 @@ export function IssueList({
             />
           )
         )}
-      </div>
+      </div>}
+      </IssueColumnEditor>
       {selection.length > 0 && (
         <div
           className="selection-toolbar issue-selection-toolbar"
           role="toolbar"
           aria-label="Selected issues"
         >
+          <CustomerBulkControl entities={selectedIssues} kind="issues"/>
           <span className="selection-summary">
             <span className="selection-label">
               <span className="selection-number">{selection.length}</span>
@@ -7851,11 +8012,12 @@ export function IssueList({
             initialEntityType="issues"
             teamId={teamId || view?.teamId}
             initialSearchQuery={query}
-            initialLayout={display.layout === "board" ? "Board" : "List"}
+            initialLayout={display.layout[0].toUpperCase()+display.layout.slice(1)}
             initialDisplay={display}
             initialFilters={{
               match: "all",
               conditions: [
+                ...(customerId ? [{field:"effectiveCustomerIds",operator:"contains",value:customerId}] : []),
                 ...(teamId
                   ? [{ field: "teamId", operator: "eq", value: teamId }]
                   : []),
@@ -8065,6 +8227,7 @@ function BulkIssueActions({
           )
         }
       >
+        <CustomerBulkControl entities={issues} kind="issues"/>
         <MenuItem
           icon="User"
           onClick={() => void change({ assigneeId: store.user?.id })}
@@ -8243,10 +8406,12 @@ export function FilterBuilder({
   onChange,
   teamId,
   additionalFields,
+  excludeFields = [],
 }: {
   value: FilterSpec;
   onChange: (v: FilterSpec) => void;
   teamId?: string;
+  excludeFields?: string[];
   additionalFields?: {
     field: string;
     label: string;
@@ -8287,9 +8452,10 @@ export function FilterBuilder({
     "templateId",
     "recurrence",
     "slaStatus",
+    "effectiveCustomerIds",
     ...customerMetricFields.map(([field]) => field),
     ...(additionalFields || []).map((extra) => extra.field),
-  ];
+  ].filter(field=>!excludeFields.includes(field));
   const filterValue = (condition: FilterSpec["conditions"][number]) =>
     ["labelIds", "projectLabelIds"].includes(condition.field)
       ? Array.isArray(condition.value)
@@ -8384,6 +8550,7 @@ export function FilterBuilder({
                       ],
                       teamId: data.teams,
                       templateId: data.templates,
+                      effectiveCustomerIds: data.customers,
                       customerIds: data.customers,
                       customerOwnerIds: [
                         { id: null, name: "No owner" },
@@ -8445,6 +8612,7 @@ export function FilterBuilder({
               <option key={f} value={f}>
                 {issueDateFields.find(([key]) => key === f)?.[1] ??
                   relationFilters.find(([key]) => key === f)?.[1] ??
+                  (f === "effectiveCustomerIds" ? "Customer" : undefined) ??
                   (f === "searchableContent" ? "Content" : undefined) ??
                   additionalFields?.find((extra) => extra.field === f)?.label ??
                   customerMetricFields.find(([field]) => field === f)?.[1] ??
@@ -8524,7 +8692,7 @@ export function FilterBuilder({
                             ["all", "includes all"],
                             ["none", "includes none"],
                           ]
-                        : []),
+                        : [["none", "is none of"]]),
                       ["empty", "is empty"],
                       ["notEmpty", "is not empty"],
                       ["before", "before"],
@@ -8657,6 +8825,7 @@ export function FilterBuilder({
             onChange={change}
             teamId={teamId}
             additionalFields={additionalFields}
+            excludeFields={excludeFields}
           />
         )}
       />
@@ -8707,8 +8876,7 @@ export function IssuePage({
       active = false;
     };
   }, [issueId, issue?.id, embedded]);
-  const [title, setTitle] = useState(""),
-    [body, setBody] = useState(""),
+  const [body, setBody] = useState(""),
     [showEvents, setShowEvents] = useState(true),
     [showProperties, setShowProperties] = useState(true),
     [addingDocument, setAddingDocument] = useState(false),
@@ -8718,30 +8886,7 @@ export function IssuePage({
     [editingComment, setEditingComment] = useState<Entity | null>(null),
     [deletingComment, setDeletingComment] = useState<Entity | null>(null),
     [editedCommentBody, setEditedCommentBody] = useState("");
-  const titleInput = useRef<HTMLTextAreaElement>(null);
   const addSubIssueButton = useRef<HTMLButtonElement>(null);
-  useLayoutEffect(() => {
-    const element = titleInput.current;
-    if (!element) return;
-    let active = true;
-    const resize = () => {
-      if (!active || !element.isConnected) return;
-      element.style.height = "auto";
-      element.style.height = `${element.scrollHeight}px`;
-    };
-    resize();
-    void document.fonts.ready.then(resize);
-    window.addEventListener("resize", resize);
-    return () => {
-      active = false;
-      window.removeEventListener("resize", resize);
-    };
-  }, [
-    title,
-    showProperties,
-    store.data.users.find((user) => user.id === store.user?.id)?.preferences
-      ?.fontSize,
-  ]);
   useEffect(() => {
     const target = currentLocation.state?.commentDraft;
     if (target?.issueId === issueId && typeof target.parentId === "string")
@@ -8758,52 +8903,9 @@ export function IssuePage({
     setExpandedThreads(new Set());
     setAddingSubIssue(false);
   }, [issueId, currentLocation.key]);
-  const pending = useRef<Record<string, any>>({});
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const journalKey = `issue-edit:${store.user?.id}:${issueId}`;
-  const flush = () => {
-    clearTimeout(timer.current);
-    const patch = pending.current;
-    if (!issueId || !Object.keys(patch).length) return;
-    pending.current = {};
-    void store
-      .update("issues", issueId, patch)
-      .then(() => {
-        if (!Object.keys(pending.current).length)
-          localStorage.removeItem(journalKey);
-      })
-      .catch((error) => store.toast(String(error)));
-  };
-  const queue = (field: string, value: any) => {
-    pending.current = { ...pending.current, [field]: value };
-    localStorage.setItem(journalKey, JSON.stringify(pending.current));
-    clearTimeout(timer.current);
-    timer.current = setTimeout(flush, 50);
-  };
   useEffect(() => {
-    if (issue) {
-      let recovery: Record<string, any> = {};
-      try {
-        recovery = JSON.parse(localStorage.getItem(journalKey) ?? "{}");
-      } catch {}
-      setTitle(recovery.title ?? issue.title);
-      setBody(recovery.description ?? issue.description ?? "");
-      if (Object.keys(recovery).length) {
-        pending.current = recovery;
-        flush();
-      }
-    }
-    const leave = () => flush();
-    window.addEventListener("pagehide", leave);
-    return () => {
-      flush();
-      window.removeEventListener("pagehide", leave);
-    };
-  }, [issueId, issue?.id]);
-  useEffect(() => {
-    if (!("title" in pending.current)) setTitle(issue?.title ?? "");
-    if (!("description" in pending.current)) setBody(issue?.description ?? "");
-  }, [issue?.title, issue?.description]);
+    setBody(issue?.description ?? "");
+  }, [issue?.id, issue?.description]);
   useEffect(() => {
     const id = currentLocation.hash.slice(1);
     if (!id.startsWith("update-") || !issue) return;
@@ -9133,7 +9235,8 @@ export function IssuePage({
           </>
         )}
         <span className="issue-header-title">
-          {issueName(issue)} <span>{issue.title}</span>
+          <span className="issue-header-identifier">{issueName(issue)}</span>
+          <span className="issue-header-name" data-tooltip-label={issue.title}>{issue.title}</span>
         </span>
         <button
           role="switch"
@@ -9286,24 +9389,12 @@ export function IssuePage({
                 </Link>
               </div>
             )}
-            <textarea
-              ref={titleInput}
-              className="detail-title"
+            <IssueTitleEditor
+              key={`${store.user?.id}:${issue.id}`}
+              issueId={issue.id}
+              value={issue.title}
               readOnly={issueReadOnly}
-              aria-label="Issue title"
-              value={title}
-              rows={1}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                const value = e.target.value;
-                if (value.trim()) queue("title", value);
-              }}
-              onKeyDown={(event) => {
-                if (event.key !== "Escape") return;
-                event.preventDefault();
-                event.stopPropagation();
-                event.currentTarget.blur();
-              }}
+              showProperties={showProperties}
             />
             {!issueReadOnly && <TriageActions issue={issue} />}
             <RichEditor
@@ -9504,6 +9595,7 @@ export function IssuePage({
             style={{ border: 0, margin: 0, minWidth: 0 }}
           >
             <h3>Properties</h3>
+            <CustomerAssignmentControl entity={issue} kind="issues" disabled={issueReadOnly}/>
             {(
               ["statusId", "priority", "assigneeId", "estimate"] as Property[]
             ).map((field) => (

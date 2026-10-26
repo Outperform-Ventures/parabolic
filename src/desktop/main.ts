@@ -19,6 +19,7 @@ import {desktopHelpMenu} from './help-menu';
 type WindowState = { x?: number; y?: number; width: number; height: number; maximized?: boolean; fullscreen?: boolean; route?: string };
 type SavedState = { alwaysShowTabs?:boolean; windows: WindowState[]; theme: 'system' | 'light' | 'dark'; servicePort?: number };
 const windows = new Set<BrowserWindow>();
+const developmentMode = !app.isPackaged && process.env.PARABOLIC_DEV === '1';
 const restartCoordinator=new RestartCoordinator((id,channel,requestId)=>{
   const win=[...windows].find(window=>window.id===id);
   if(!win||win.isDestroyed())throw Error('A workspace window is no longer available.');
@@ -119,6 +120,7 @@ function createWindow(state: WindowState = { width: 1280, height: 800 }) {
   const bounds = restoredWindowBounds(state, screen.getAllDisplays().map(display=>display.workArea));
   const win = new BrowserWindow({ ...bounds, fullscreenable: true, minWidth: 500, minHeight: 520, show: false, title: 'Parabolic', backgroundColor: nativeTheme.shouldUseDarkColors ? '#090909' : '#ffffff', titleBarStyle: process.platform==='darwin'?'hidden':'default', trafficLightPosition: process.platform==='darwin'?{ x: 17, y: 12 }:undefined, autoHideMenuBar: process.platform !== 'darwin', webPreferences: { preload: join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, allowRunningInsecureContent: false, spellcheck: true, partition: rendererPartition } });
   windows.add(win);
+  if (developmentMode) win.on('page-title-updated', (event, title) => {event.preventDefault();win.setTitle(`${title} — Parabolic Dev`);});
   rendererCommands.reset(win.webContents.id);
   win.on('focus',refreshCreationMenu);
   win.webContents.on('did-start-navigation',details=>{if(details.isMainFrame)restartCoordinator.invalidate(win.id);if(details.isMainFrame&&!details.isSameDocument&&trustedRendererUrl(details.url,rendererOrigin)){rendererCommands.reset(win.webContents.id);creationReady.delete(win.webContents.id);creationAvailability.delete(win.webContents.id);refreshCreationMenu();}});
@@ -177,6 +179,7 @@ function installIpc() {
   ipcMain.on('desktop:renderer-ready',(event,ready)=>{try{validSender(event);if(typeof ready!=='boolean')return;if(!ready){rendererCommands.reset(event.sender.id);creationReady.delete(event.sender.id);creationAvailability.delete(event.sender.id);refreshCreationMenu();return;}creationReady.add(event.sender.id);refreshCreationMenu();for(const item of rendererCommands.ready(event.sender.id))event.sender.send('desktop:command',item);}catch{/* Detached, child, and foreign frames cannot receive queued commands. */}});
   ipcMain.handle('desktop:get-connection',event=>{validSender(event);return {serverUrl:configuredServerUrl,activeUrl:rendererOrigin,mode:service?'embedded':'remote'};});
   ipcMain.handle('desktop:set-connection',async(event,value)=>{
+    if(developmentMode)throw Error('Parabolic Dev stays connected to its isolated local server. Use the installed app for other workspaces.');
     validSender(event);const url=value===null||value===''?null:safeServerUrl(value);if(value!==null&&value!==''&&!url)throw Error('Enter an HTTPS server origin, or a loopback HTTP origin, without a path or credentials');
     if(url){const response=await fetch(`${url}/health`,{signal:AbortSignal.timeout(8000),redirect:'error',headers:{Accept:'application/json'}});if(!response.ok)throw Error('The workspace server did not respond successfully');const health=await response.json() as {status?:string;version?:string};if(health.status!=='ok'||typeof health.version!=='string')throw Error('This address is not a compatible workspace server');}
     mkdirSync(app.getPath('userData'),{recursive:true});const file=connectionFile();writeFileSync(`${file}.tmp`,JSON.stringify({serverUrl:url}),{mode:0o600});renameSync(`${file}.tmp`,file);configuredServerUrl=url;connectionChanged=true;delete process.env.PARABOLIC_RENDERER_URL;
@@ -270,7 +273,8 @@ async function recoverService(error:Error){
 }
 
 export async function startDesktop() {
-  app.setName('Parabolic');
+  app.setName(developmentMode ? 'Parabolic Dev' : 'Parabolic');
+  if (developmentMode && (!process.env.PARABOLIC_RENDERER_URL || !process.env.PARABOLIC_USER_DATA)) throw Error('Launch Parabolic Dev with pnpm dev:desktop.');
   if (process.env.PARABOLIC_USER_DATA) { if (!isAbsolute(process.env.PARABOLIC_USER_DATA)) throw new Error('PARABOLIC_USER_DATA must be an absolute directory'); mkdirSync(process.env.PARABOLIC_USER_DATA, { recursive: true, mode: 0o700 }); app.setPath('userData', process.env.PARABOLIC_USER_DATA); }
   hardwareAccelerationDisabled=loadDesktopDevicePreferences(app.getPath('userData')).hardwareAccelerationDisabled;
   if(hardwareAccelerationDisabled)app.disableHardwareAcceleration();
@@ -278,7 +282,7 @@ export async function startDesktop() {
   if (!lock) { app.quit(); return; }
   app.on('second-instance', (_event, argv) => { const route = argv.map(routeFromDeepLink).find(Boolean); if (route) navigate(route); else focused()?.show(); });
   app.on('open-url', (event, url) => { event.preventDefault(); const route = routeFromDeepLink(url); if (!route) return; if (rendererUrl) navigate(route); else pendingRoutes.push(route); });
-  app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+  app.on('window-all-closed', () => { if (developmentMode || process.platform !== 'darwin') app.quit(); });
   app.on('activate', () => { if (rendererUrl && !windows.size) createWindow(); });
   app.on('before-quit',event=>{
     desktopUpdates?.stop();
@@ -291,7 +295,7 @@ export async function startDesktop() {
   if (process.env.PARABOLIC_HEADLESS === '1') app.dock?.hide();
   if (app.isPackaged) app.setAsDefaultProtocolClient('parabolic');
   const state = loadState(); alwaysShowTabs=state.alwaysShowTabs!==false; nativeTheme.themeSource = state.theme; localServicePort = state.servicePort;configuredServerUrl=loadConnection();
-  app.setAboutPanelOptions({ applicationName: 'Parabolic', applicationVersion: app.getVersion(), version: '', copyright: 'Internal workspace' });
+  app.setAboutPanelOptions({ applicationName: developmentMode ? 'Parabolic Dev' : 'Parabolic', applicationVersion: app.getVersion(), version: '', copyright: developmentMode ? 'Isolated development workspace' : 'Internal workspace' });
   if (process.env.PARABOLIC_RENDERER_URL||configuredServerUrl) {
     const url = new URL(process.env.PARABOLIC_RENDERER_URL||configuredServerUrl!);
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Invalid renderer URL');

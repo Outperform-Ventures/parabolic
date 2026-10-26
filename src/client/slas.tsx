@@ -193,7 +193,7 @@ export function SlaSettings() {
     <div className="sla-settings-page">
       <div className="feature-setting-title">
         <div><h1>SLAs</h1>
-        <p>Service-level agreements (SLAs) automatically apply deadlines to issues when they match<br/> predefined parameters. While often used to define response times to customer issues, they can<br/> also be used to define internal standards for bug and time-sensitive issue resolution. <a href="https://parabolic.app/docs/sla" target="_blank" rel="noreferrer">Docs ↗</a></p></div>
+        <p>Service-level agreements (SLAs) automatically apply deadlines to issues when they match predefined parameters. While often used to define response times to customer issues, they can also be used to define internal standards for bug and time-sensitive issue resolution. <a href="https://parabolic.app/docs/sla" target="_blank" rel="noreferrer">Docs ↗</a></p></div>
       </div>
       <section className="feature-setting-section sla-work-week">
         <h2>Work week</h2>

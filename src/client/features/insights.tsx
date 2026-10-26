@@ -7,6 +7,10 @@ import {useCalendarDay} from '../due-date';
 import { InsightScatter, InsightIssueList } from "./insight-scatter";
 import { DashboardGrid } from "./dashboard-grid";
 import { dashboardLayout } from "./dashboard-layout";
+import {dashboardStarter} from './dashboard-presets';
+import {dashboardConfig,dashboardDisplay,dashboardFilterCount,type DashboardDisplay} from './dashboard-presentation';
+import {Dropdown,MenuItem} from '../components/ui';
+import './dashboard-presentation.css';
 import React, { useMemo, useState } from "react";
 import {
   Link,
@@ -27,6 +31,11 @@ import {
   RefreshCw,
   Filter,
   X,
+  MoreHorizontal,
+  Maximize2,
+  Table2,
+  Hash,
+  Check,
 } from "lucide-react";
 import { FilterBuilder } from "../issues";
 import { type FilterSpec } from "../query";
@@ -82,10 +91,12 @@ export function InsightControls({
   value,
   onChange,
   showFilters = true,
+  dashboard = false,
 }: {
   value: InsightConfig;
   onChange: (v: InsightConfig) => void;
   showFilters?: boolean;
+  dashboard?: boolean;
 }) {
   const {data}=useActions(),params=useParams(),location=useLocation();
   const scopedTeams=params.teamId?data.teams.filter(team=>team.id===params.teamId):params.projectId?data.teams.filter(team=>data.projects.find(project=>project.id===params.projectId)?.teamIds?.includes(team.id)):data.teams.filter(team=>!team.deletedAt);
@@ -144,19 +155,19 @@ export function InsightControls({
             ))}
           </select>
         </label>}
-        <label>
-          Display
+        {(!dashboard || !['Metric','Table'].includes(value.chartType)) && <label>
+          {dashboard ? 'Chart type' : 'Display'}
           <select
             className="input"
             aria-label="Insight display"
             value={value.chartType}
             onChange={(e) => set({ chartType: e.target.value })}
           >
-            {["Auto", duration?"Scatter":"Bar", "Table", "Metric"].map((m) => (
+            {(dashboard ? ["Auto", duration?"Scatter":"Bar"] : ["Auto", duration?"Scatter":"Bar", "Table", "Metric"]).map((m) => (
               <option key={m}>{m}</option>
             ))}
           </select>
-        </label>
+        </label>}
         {(value.group === "Burn-up" || value.group.endsWith(" date") || value.segment.endsWith(" date")) && (
           <label>
             Interval
@@ -173,6 +184,7 @@ export function InsightControls({
           </label>
         )}
       </div>
+      <details className={dashboard ? 'dashboard-advanced-options' : 'insight-expanded-options'} open={dashboard ? undefined : true}><summary>Advanced options</summary>
       {(['group','segment'] as const).filter(slot=>['Label group','Project label group'].includes(value[slot])).map(slot=><label key={slot}>{slot==='group'?'Slice label group':'Segment label group'}<select className="input" aria-label={slot==='group'?'Slice label group':'Segment label group'} value={(slot==='group'?value.groupLabelGroupId:value.segmentLabelGroupId)??''} onChange={event=>set(slot==='group'?{groupLabelGroupId:event.target.value}:{segmentLabelGroupId:event.target.value})}><option value="">All label groups</option>{[...data.labelGroups,...data.labels.filter(label=>label.isGroup)].filter((group,index,groups)=>!group.deletedAt&&groups.findIndex(other=>other.id===group.id)===index).map(group=><option key={group.id} value={group.id}>{group.name}</option>)}</select></label>)}
       {value.measure==='Time in status'&&<div className="feature-analysis-controls"><MultipleProperty label="Status types" values={value.measureStatusTypes??['started']} options={['triage','backlog','unstarted','started','completed','canceled'].map(type=>({value:type,label:{triage:'Triage',backlog:'Backlog',unstarted:'Todo',started:'In progress',completed:'Completed',canceled:'Canceled'}[type]!}))} onChange={measureStatusTypes=>set({measureStatusTypes})}/><MultipleProperty label="Specific statuses" values={value.measureStatusIds??[]} options={data.statuses.filter(status=>!status.deletedAt).map(status=>({value:status.id,label:status.name+' · '+(data.teams.find(team=>team.id===status.teamId)?.name||'')}))} onChange={measureStatusIds=>set({measureStatusIds})}/></div>}
       {duration&&<div className="feature-analysis-controls"><MultipleProperty label="Percentiles" values={(value.latencyPercentiles??[.5,.95]).map(String)} options={[.25,.5,.75,.95].map(number=>({value:String(number),label:'P'+number*100}))} onChange={values=>set({latencyPercentiles:values.map(Number)})}/><label>Scale<select className="input" aria-label="Latency scale" value={value.latencyScale??'log'} onChange={event=>set({latencyScale:event.target.value as 'linear'|'log'})}><option value="linear">Uniform</option><option value="log">Logarithmic</option></select></label></div>}
@@ -199,6 +211,7 @@ export function InsightControls({
           Exclude issues with no priority
         </label>
       </div>
+      </details>
       {showFilters && (
         <FilterBuilder
           value={value.filters}
@@ -214,12 +227,14 @@ export function InsightChart({
   onSelect,
   highlight,
   onHover,
+  compact = false,
 }: {
   result: InsightData;
   config: InsightConfig;
   onSelect: (rows: InsightDatum[], selection?: {bucket?:string;segment?:string;threshold?:number;percentile?:number;operator?:'lte'|'gt'}) => void;
   highlight?: {bucket?:string;segment?:string}|null;
   onHover?: (value:{bucket?:string;segment?:string}|null)=>void;
+  compact?: boolean;
 }) {
   const {data:colorSource}=useActions();
   const [hover, setHover] = useState<string | null>(null),
@@ -234,10 +249,10 @@ export function InsightChart({
   const max = Math.max(1, ...buckets.map((b) => Math.max(b.value,b.segments.reduce((sum,s)=>sum+(result.duration?s.value*s.rows.length/Math.max(1,b.rows.length):s.value),0))));
   const theme=useInsightTheme();
   const colors=useMemo(()=>insightColors(colorSource,config,result,theme),[colorSource,config,result,theme]);
-  if(kind==='Metric'&&result.duration)return <div className="feature-insight-percentile-metrics">{(config.latencyPercentiles??[.5,.95]).map(fraction=>{const threshold=percentile(rows.map(row=>row.value),fraction);return <button key={fraction} className="feature-insight-metric" aria-label={'Explore '+config.measure+' P'+fraction*100} onClick={()=>onSelect(rows.filter(row=>row.value>threshold),{percentile:fraction,threshold,operator:'gt'})}><span>{config.measure} · P{fraction*100}</span><strong>{format(threshold)}</strong><span>{result.unit}</span></button>})}</div>;
+  if(kind==='Metric'&&result.duration)return <div className="feature-insight-percentile-metrics">{(config.latencyPercentiles??[.5,.95]).map(fraction=>{const threshold=percentile(rows.map(row=>row.value),fraction);return <button type="button" key={fraction} className="feature-insight-metric" aria-label={'Explore '+config.measure+' P'+fraction*100} onClick={()=>onSelect(rows.filter(row=>row.value>threshold),{percentile:fraction,threshold,operator:'gt'})}><span>{config.measure} · P{fraction*100}</span><strong>{format(threshold)}</strong><span>{result.unit}</span></button>})}</div>;
   if (kind === "Metric")
     return (
-      <button
+      <button type="button"
         className="feature-insight-metric"
         onClick={() => onSelect(rows, {})}
         aria-label={`Explore ${config.measure}`}
@@ -324,7 +339,7 @@ export function InsightChart({
   if (kind === "Table") return null;
   return (
     <div className="feature-insight-bars">
-      {buckets.map((bucket) => (
+      {(compact ? buckets.slice(0,8) : buckets).map((bucket) => (
         <div key={bucket.key??bucket.label} className="feature-insight-bar-group" data-highlighted={!!highlight && (!highlight.bucket || highlight.bucket===(bucket.key??bucket.label)) && (!highlight.segment || bucket.segments.some(segment=>(segment.key??segment.label)===highlight.segment))}>
           <div className="feature-insight-bar-value">
             {format(bucket.value)}
@@ -335,11 +350,12 @@ export function InsightChart({
             aria-label={bucket.label}
           >
             {bucket.segments.map((segment) => (
-              <button
+              <button type="button"
                 key={segment.key??segment.label}
                 aria-label={`${bucket.label}, ${segment.label}: ${format(segment.value)} ${result.unit}`}
+                data-tooltip-disabled // The chart already renders its own detailed hover card.
                 style={{
-                  height: `${Math.max(0, ((result.duration ? (segment.value * segment.rows.length) / bucket.rows.length : segment.value) / max) * 180)}px`,
+                  height: `${Math.max(0, ((result.duration ? (segment.value * segment.rows.length) / bucket.rows.length : segment.value) / max) * 100)}%`,
                   background: colors.get(config.segment==='None'?(bucket.key??bucket.label):(segment.key??segment.label)),
                 }}
                 onMouseEnter={() => {
@@ -352,9 +368,9 @@ export function InsightChart({
               />
             ))}
           </div>
-          <button
+          <button type="button"
             className="feature-insight-bar-label"
-            title={bucket.label}
+            data-tooltip-label={bucket.label}
             onClick={() => onSelect(bucket.rows, {bucket:bucket.key??bucket.label})}
           >
             {bucket.label}
@@ -370,11 +386,15 @@ function Insight({
   globalFilters,
   scopeTeamId,
   excludePrivate = false,
+  presentation,
+  title,
 }: {
   config: InsightConfig;
   globalFilters?: FilterSpec;
   scopeTeamId?: string;
   excludePrivate?: boolean;
+  presentation?: DashboardDisplay;
+  title?: string;
 }) {
   const { data, user } = useActions();
   const [highlight,setHighlight] = useState<{bucket?:string;segment?:string}|null>(null);
@@ -420,17 +440,19 @@ function Insight({
     ],
   );
   const [selected, setSelected] = useState<InsightDatum[] | null>(null);
+  const selectedIds = new Set(selected?.map(row=>row.issue.id));
+  const visibleSelected = selected ? result.rows.filter(row=>selectedIds.has(row.issue.id)) : null;
   const navigate = useNavigate();
   const open = (rows: InsightDatum[]) => {
-    if (rows.length === 1) navigate(`/issues/${rows[0].issue.id}`);
+    if (!presentation && rows.length === 1) navigate(`/issues/${rows[0].issue.id}`);
     else setSelected(rows);
   };
   return (
     <>
-      {result.rows.length ? (
+      {result.rows.length || (config.chartType === "Metric" && !result.duration) ? (
         <>
-          <InsightChart result={result} config={config} onSelect={open} highlight={highlight} onHover={setHighlight} />
-          {config.chartType !== "Metric" && (
+          {presentation !== 'table' && <InsightChart result={result} config={config} onSelect={open} highlight={highlight} onHover={setHighlight} compact={!!presentation} />}
+          {config.chartType !== "Metric" && (!presentation || presentation === 'table') && (
             <div className="feature-insight-table-scroll">
               <table className="feature-table feature-insight-table">
                 <thead>
@@ -439,9 +461,9 @@ function Insight({
                       {config.group === "Burn-up" ? "Measure" : config.group}
                     </th>
                     {!result.duration&&<th>{config.measure}</th>}
-                    <th>Issues</th>
-                    {config.segment!=='None'&&[...new Set(result.rows.flatMap(row=>row.segmentKeys||row.segments||[row.segment]))].map(segment=><th key={segment}><button onMouseEnter={()=>setHighlight({segment})} onMouseLeave={()=>setHighlight(null)} onClick={()=>open(result.rows.filter(row=>(row.segmentKeys||row.segments||[row.segment]).includes(segment)))}>{result.segmentLabels?.[segment]??segment}</button></th>)}
-                    {result.duration&&(config.latencyPercentiles??[.5,.95]).map(value=><th key={value}><button onClick={()=>open(result.rows.filter(row=>row.value<=percentile(result.rows.map(row=>row.value),value)))}>P{value*100}</button><button aria-label={'Explore above P'+value*100} onClick={()=>{const threshold=percentile(result.rows.map(row=>row.value),value);open(result.rows.filter(row=>row.value>threshold));}}>Above</button></th>)}
+                    {(!presentation || result.duration || config.measure !== 'Issue count') && <th>Issues</th>}
+                    {config.segment!=='None'&&[...new Set(result.rows.flatMap(row=>row.segmentKeys||row.segments||[row.segment]))].map(segment=><th key={segment}><button type="button" onMouseEnter={()=>setHighlight({segment})} onMouseLeave={()=>setHighlight(null)} onClick={()=>open(result.rows.filter(row=>(row.segmentKeys||row.segments||[row.segment]).includes(segment)))}>{result.segmentLabels?.[segment]??segment}</button></th>)}
+                    {result.duration&&(config.latencyPercentiles??[.5,.95]).map(value=><th key={value}><button type="button" onClick={()=>open(result.rows.filter(row=>row.value<=percentile(result.rows.map(row=>row.value),value)))}>P{value*100}</button><button type="button" aria-label={'Explore above P'+value*100} onClick={()=>{const threshold=percentile(result.rows.map(row=>row.value),value);open(result.rows.filter(row=>row.value>threshold));}}>Above</button></th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -456,23 +478,25 @@ function Insight({
                       onKeyDown={(e) => e.key === "Enter" && open(bucket.rows)}
                     >
                       <td>{bucket.label}</td>
-                      {!result.duration&&<td>{format(bucket.value)} {result.unit}</td>}
-                      <td>{bucket.count}</td>
-                      {config.segment!=='None'&&[...new Set(result.rows.flatMap(row=>row.segmentKeys||row.segments||[row.segment]))].map(segment=>{const cell=bucket.segments.find(cell=>(cell.key??cell.label)===segment);return <td key={segment}><button disabled={!cell} aria-label={`Explore ${bucket.label}, ${result.segmentLabels?.[segment]??segment}`} onMouseEnter={()=>setHighlight({bucket:bucket.key??bucket.label,segment})} onMouseLeave={()=>setHighlight({bucket:bucket.key??bucket.label})} onClick={event=>{event.stopPropagation();if(cell)open(cell.rows)}}>{format(cell?.value||0)}</button></td>})}
-                      {result.duration&&(config.latencyPercentiles??[.5,.95]).map(value=>{const threshold=percentile(bucket.rows.map(row=>row.value),value);return <td key={value}><button onClick={event=>{event.stopPropagation();open(bucket.rows.filter(row=>row.value<=threshold))}}>{format(threshold)} d</button><button aria-label={'Explore '+bucket.label+' above P'+value*100} onClick={event=>{event.stopPropagation();open(bucket.rows.filter(row=>row.value>threshold));}}>{bucket.rows.filter(row=>row.value>threshold).length} above</button></td>})}
+                      {!result.duration&&<td>{format(bucket.value)}{!presentation ? ' '+result.unit : ''}</td>}
+                      {(!presentation || result.duration || config.measure !== 'Issue count') && <td>{bucket.count}</td>}
+                      {config.segment!=='None'&&[...new Set(result.rows.flatMap(row=>row.segmentKeys||row.segments||[row.segment]))].map(segment=>{const cell=bucket.segments.find(cell=>(cell.key??cell.label)===segment);return <td key={segment}><button type="button" disabled={!cell} aria-label={`Explore ${bucket.label}, ${result.segmentLabels?.[segment]??segment}`} onMouseEnter={()=>setHighlight({bucket:bucket.key??bucket.label,segment})} onMouseLeave={()=>setHighlight({bucket:bucket.key??bucket.label})} onClick={event=>{event.stopPropagation();if(cell)open(cell.rows)}}>{format(cell?.value||0)}</button></td>})}
+                      {result.duration&&(config.latencyPercentiles??[.5,.95]).map(value=>{const threshold=percentile(bucket.rows.map(row=>row.value),value);return <td key={value}><button type="button" onClick={event=>{event.stopPropagation();open(bucket.rows.filter(row=>row.value<=threshold))}}>{format(threshold)} d</button><button type="button" aria-label={'Explore '+bucket.label+' above P'+value*100} onClick={event=>{event.stopPropagation();open(bucket.rows.filter(row=>row.value>threshold));}}>{bucket.rows.filter(row=>row.value>threshold).length} above</button></td>})}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
+          {presentation === 'chart' && config.group !== 'Burn-up' && ['Auto','Bar'].includes(config.chartType) && !result.duration && result.buckets.length > 8 && <small className="dashboard-overflow-note">Showing 8 of {result.buckets.length} slices · Expand for all</small>}
           <div className="feature-analysis-total">
+            {presentation ? <button type="button" aria-label={`Explore ${title || 'insight'} issues`} onClick={()=>setSelected(result.rows)}><span>{result.rows.length} {result.duration ? 'measured' : 'matching'} issues</span><span aria-hidden="true">↗</span></button> : <>
             {result.rows.length} {result.duration ? "measured" : "matching"}{" "}
             issues
             {result.duration ? ` · ${format(result.total)} days average` : ""}
             {config.group === "Label"
               ? " · Issues can appear in multiple labels"
-              : ""}
+              : ""}</>}
           </div>
         </>
       ) : (
@@ -485,15 +509,15 @@ function Insight({
           }
         />
       )}{" "}
-      {selected && (
+      {visibleSelected && (
         <FormDialog
-          title={`${selected.length} issues`}
+          title={`${visibleSelected.length} issues`}
           fields={[]}
           submit="Done"
           onClose={() => setSelected(null)}
           onSave={async () => true}
         >
-          <InsightIssueList rows={selected} />
+          <InsightIssueList rows={visibleSelected} />
         </FormDialog>
       )}
     </>
@@ -647,12 +671,16 @@ function WidgetEditor({
   widget,
   onClose,
   onSave,
+  dashboard,
 }: {
   widget?: Row;
   onClose: () => void;
   onSave: (value: Row) => Promise<any>;
+  dashboard: Row;
 }) {
-  const [config, setConfig] = useState<InsightConfig>(decodeConfig(widget));
+  const {data}=useActions();
+  const [config, setConfig] = useState<InsightConfig>(decodeConfig(dashboardSource(widget || {},data.views)));
+  const [mode,setMode] = useState<DashboardDisplay>(dashboardDisplay(widget || {}));
   return (
     <FormDialog
       title={widget ? "Edit insight" : "Add insight"}
@@ -663,13 +691,28 @@ function WidgetEditor({
       onSave={(v) =>
         onSave({
           ...widget,
-          ...config,
+          ...(!widget?.sourceViewId ? config : {}),
+          displayMode: mode,
           ...v,
           id: widget?.id || crypto.randomUUID(),
         } as Row)
       }
     >
-      <InsightControls value={config} onChange={setConfig} />
+      <div className="dashboard-insight-editor">
+        <div className="dashboard-editor-settings">
+          <span className="dashboard-field-label">Display as</span>
+          <div className="dashboard-display-picker" role="group" aria-label="Insight presentation">
+            {(['chart','table','metric'] as const).map(value=>{const Glyph=value==='chart'?ChartNoAxesColumn:value==='table'?Table2:Hash;return <button type="button" key={value} aria-pressed={mode===value} onClick={()=>setMode(value)}><Glyph size={15}/>{value[0].toUpperCase()+value.slice(1)}</button>;})}
+          </div>
+          {widget?.sourceViewId ? <p className="muted">This analysis follows its source view. Presentation changes apply only to this dashboard. <Link to={`/view/${widget.sourceViewId}`}>Open source view</Link></p> : <InsightControls dashboard value={dashboardConfig(config,mode)} onChange={next=>setConfig({...next,chartType:['Metric','Table'].includes(next.chartType)?config.chartType:next.chartType})}/>}
+        </div>
+        <div className="dashboard-editor-preview" data-form-transient>
+          <span className="dashboard-field-label">Live preview · dashboard filters apply</span>
+          <div className={`feature-dashboard-widget-body dashboard-presentation dashboard-${mode}-body`}>
+            <Insight title="Preview" config={dashboardConfig(config,mode)} presentation={mode} globalFilters={dashboard.filters} scopeTeamId={dashboard.teamId||undefined} excludePrivate={!dashboard.teamId&&!['private','personal'].includes(dashboard.visibility)}/>
+          </div>
+        </div>
+      </div>
     </FormDialog>
   );
 }
@@ -693,6 +736,8 @@ export function DashboardEditor({
       title={dashboard ? "Edit dashboard" : "New dashboard"}
       fields={[
         { key: "name", label: "Name", required: true },
+        { key: "description", label: "Description", placeholder: "What does this dashboard help you decide?" },
+        ...(!dashboard ? [{key:'template',label:'Start with',type:'select' as const,options:[{value:'overview',label:'Work overview — metrics and charts'},{value:'customer',label:'Customer delivery'},{value:'workload',label:'Team workload'},{value:'business',label:'Business overview'},{value:'blank',label:'Blank dashboard'}]}] : []),
         {
           key: "visibility",
           label: "Visibility",
@@ -715,7 +760,7 @@ export function DashboardEditor({
           options: optionList(data.users),
         },
       ].filter(field=>field.key!=="ownerId"||!dashboard||!["private","personal"].includes(dashboard.visibility))}
-      initial={dashboard || { visibility: "workspace", ownerId: user?.id, teamId: initialTeamId }}
+      initial={dashboard || { visibility: "workspace", ownerId: user?.id, teamId: initialTeamId, template:'overview' }}
       submit={dashboard ? "Save changes" : "Create dashboard"}
       onClose={onClose}
       onSave={(v) => onSave({ ...v, filters })}
@@ -736,8 +781,11 @@ export function DashboardsPage() {
   const [adding, setAdding] = useState(false),
     [widget, setWidget] = useState<Row | boolean>(false),
     [editing, setEditing] = useState(false),
-    [showFilters, setShowFilters] = useState(true);
+    [expandedId, setExpandedId] = useState<string|null>(null),
+    [showFilters, setShowFilters] = useState(false);
   const dashboard = live(data.dashboards).find((d) => d.id === dashboardId);
+  const expandedWidget=dashboard?.widgets?.find((w:Row)=>w.id===expandedId);
+  const expandedSource=expandedWidget?dashboardSource(expandedWidget,data.views):null;
   const canEdit=!!dashboard&&!dashboard.archivedAt&&guestAccess.canEntity(dashboard);
   const saveWidgets = (widgets: any[]) =>
     act(() => update("dashboards", dashboard!.id, { widgets }));
@@ -755,8 +803,9 @@ export function DashboardsPage() {
     widgets.splice(index + delta, 0, item);
     void saveWidgets(widgets);
   };
+  if(dashboardId&&!dashboard)return <section className="feature-page"><Header title="Dashboards" icon={<LayoutDashboard size={16}/>}/><Blank title="Dashboard not found" description="This dashboard was deleted or you do not have access." action={<Link to={canCreate?'/dashboards':'/my-issues'}>Go back</Link>}/></section>;
   return (
-    <section className="feature-page">
+    <section className="feature-page dashboard-page">
       <Header
         title={dashboard?.name || "Dashboards"}
         icon={<LayoutDashboard size={16} />}
@@ -766,10 +815,6 @@ export function DashboardsPage() {
       >
         {dashboard ? (
           <>
-            <Action onClick={() => setShowFilters(!showFilters)}>
-              <Filter size={13} />
-              {showFilters ? "Hide saved filters" : "Saved filters"}
-            </Action>
             <Action
               onClick={async () => {
                 await reload();
@@ -779,7 +824,6 @@ export function DashboardsPage() {
               <RefreshCw size={13} />
               Refresh
             </Action>
-            {canEdit&&<AddButton onClick={() => setWidget(true)}>Add widget</AddButton>}
             {canEdit?<EntityMenu
               kind="dashboards"
               item={dashboard}
@@ -793,6 +837,15 @@ export function DashboardsPage() {
       </Header>
       {dashboard ? (
         <>
+          <div className="dashboard-page-heading">
+            <div><h1><LayoutDashboard size={20}/>{dashboard.name}</h1><p>{dashboard.description || 'A focused view of your work, from the big picture to the issues behind it.'}</p></div>
+            <span className="dashboard-scope">{['private','personal'].includes(dashboard.visibility)?'Personal':data.teams.find(t=>t.id===dashboard.teamId)?.name||'Workspace'}</span>
+          </div>
+          <div className="dashboard-toolbar">
+            <Action onClick={() => setShowFilters(!showFilters)}><Filter size={14}/>{showFilters?'Hide saved filters':'Saved filters'}{dashboardFilterCount(dashboard.filters)>0&&<span className="dashboard-filter-count">{dashboardFilterCount(dashboard.filters)}</span>}</Action>
+            <span className="dashboard-filter-summary">{dashboardFilterCount(dashboard.filters)?'Applied to every insight':'All accessible issues in this scope'}</span>
+            {canEdit&&<AddButton onClick={()=>setWidget(true)}>Add insight</AddButton>}
+          </div>
           {showFilters && (
             <fieldset disabled={!canEdit} className="feature-dashboard-filters" style={{border:0,margin:0,minWidth:0}}>
               <FilterBuilder
@@ -809,66 +862,30 @@ export function DashboardsPage() {
             readOnly={!canEdit}
             widgets={dashboard.widgets || []}
             onChange={(widgets) => void saveWidgets(widgets)}
-            renderWidget={(w, index) => (
+            renderWidget={(w, index) => {const source=dashboardSource(w,data.views),mode=dashboardDisplay(w);return (
               <>
                 <div className="feature-between">
                   <h3>{w.name}</h3>
-                  <div className="feature-widget-actions" hidden={!canEdit} style={canEdit?undefined:{display:"none"}}>
-                    <button
-                      className="feature-icon-button"
-                      aria-label={`Move ${w.name} earlier`}
-                      disabled={index === 0}
-                      onClick={() => move(index, -1)}
-                    >
-                      <ArrowUp size={13} />
-                    </button>
-                    <button
-                      className="feature-icon-button"
-                      aria-label={`Move ${w.name} later`}
-                      disabled={index === dashboard.widgets.length - 1}
-                      onClick={() => move(index, 1)}
-                    >
-                      <ArrowDown size={13} />
-                    </button>
-                    <button
-                      className="feature-icon-button"
-                      aria-label={`Edit ${w.name}`}
-                      onClick={() => w.sourceViewId ? nav(`/view/${w.sourceViewId}?insights=${encodeURIComponent(JSON.stringify(decodeConfig(w)))}`) : setWidget(w as Row)}
-                    >
-                      <Pencil size={13} />
-                    </button>
-                    <button
-                      className="feature-icon-button"
-                      aria-label={`Duplicate ${w.name}`}
-                      onClick={() =>
-                        void saveWidgets([
-                          ...dashboard.widgets,
-                          {
-                            ...w,
-                            id: crypto.randomUUID(),
-                            name: `${w.name} copy`,
-                          },
-                        ])
-                      }
-                    >
-                      <Copy size={13} />
-                    </button>
-                    <button
-                      className="feature-icon-button"
-                      aria-label={`Remove ${w.name}`}
-                      onClick={() =>
-                        void saveWidgets(
-                          dashboard.widgets.filter((x: any) => x.id !== w.id),
-                        )
-                      }
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                  <div className="feature-widget-actions">
+                    <button type="button" className="feature-icon-button" aria-label={`Expand ${w.name}`} disabled={!source} onClick={()=>setExpandedId(w.id)}><Maximize2 size={14}/></button>
+                    {canEdit&&<Dropdown align="right" menuClassName="dashboard-widget-menu" trigger={<button type="button" className="feature-icon-button" aria-label={`Options for ${w.name}`}><MoreHorizontal size={16}/></button>}>
+                      <div className="dashboard-menu-heading">Display as</div>
+                      {(['chart','table','metric'] as const).map(value=><MenuItem key={value} icon={value==='chart'?'ChartNoAxesColumn':value==='table'?'Table2':'Hash'} onClick={()=>void saveWidgets(dashboard.widgets.map((item:Row)=>item.id===w.id?{...item,displayMode:value}:item))}>{value[0].toUpperCase()+value.slice(1)}{mode===value&&<Check size={13}/>}</MenuItem>)}
+                      <hr/>
+                      <MenuItem icon="Pencil" onClick={()=>setWidget(w as Row)}>Edit insight</MenuItem>
+                      {w.sourceViewId&&<MenuItem icon="ExternalLink" onClick={()=>nav(`/view/${w.sourceViewId}`)}>Open source view</MenuItem>}
+                      <MenuItem icon="Copy" onClick={()=>void saveWidgets([...dashboard.widgets,{...w,id:crypto.randomUUID(),layout:undefined,name:`${w.name} copy`}])}>Duplicate insight</MenuItem>
+                      <MenuItem icon="ArrowUp" disabled={index===0} onClick={()=>move(index,-1)}>Move earlier</MenuItem>
+                      <MenuItem icon="ArrowDown" disabled={index===dashboard.widgets.length-1} onClick={()=>move(index,1)}>Move later</MenuItem>
+                      <hr/><MenuItem icon="Trash2" danger onClick={()=>void saveWidgets(dashboard.widgets.filter((item:Row)=>item.id!==w.id))}>Remove insight</MenuItem>
+                    </Dropdown>}
                   </div>
                 </div>
-                <div className="feature-dashboard-widget-body">
-                  {dashboardSource(w,data.views)?<Insight
-                    config={decodeConfig(dashboardSource(w,data.views))}
+                <div className={`feature-dashboard-widget-body dashboard-presentation dashboard-${mode}-body`} data-display-mode={mode}>
+                  {source?<Insight
+                    title={w.name}
+                    presentation={mode}
+                    config={dashboardConfig(decodeConfig(source),mode)}
                     globalFilters={dashboard.filters}
                     scopeTeamId={dashboard.teamId || undefined}
                     excludePrivate={
@@ -877,14 +894,14 @@ export function DashboardsPage() {
                   />:<p className="muted">Source insight is unavailable or you do not have access.</p>}
                 </div>
               </>
-            )}
+            );}}
           />
           {!dashboard.widgets?.length && (
             <Blank
               title="Build your dashboard"
               action={
                 canEdit?<AddButton onClick={() => setWidget(true)}>
-                  Add widget
+                  Add insight
                 </AddButton>:null
               }
             />
@@ -934,7 +951,7 @@ export function DashboardsPage() {
             const saved = await act(() =>
               editing && dashboard
                 ? update("dashboards", dashboard.id, values)
-                : create("dashboards", { ...values, widgets: [] }),
+                : create("dashboards", { ...values, widgets: dashboardStarter(values.template, data.statuses) }),
             );
             if (saved) nav(`/dashboards/${saved.id}`);
             return saved;
@@ -943,6 +960,7 @@ export function DashboardsPage() {
       )}
       {widget && dashboard && (
         <WidgetEditor
+          dashboard={dashboard}
           widget={typeof widget === "object" ? widget : undefined}
           onClose={() => setWidget(false)}
           onSave={(value) =>
@@ -956,6 +974,7 @@ export function DashboardsPage() {
           }
         />
       )}
+      {expandedWidget&&dashboard&&<FormDialog title={expandedWidget.name} fields={[]} submit="Done" onSave={async()=>true} onClose={()=>setExpandedId(null)}><div className="dashboard-expanded-insight">{expandedSource?<Insight config={dashboardConfig(decodeConfig(expandedSource),dashboardDisplay(expandedWidget))} globalFilters={dashboard.filters} scopeTeamId={dashboard.teamId||undefined} excludePrivate={!dashboard.teamId&&!['private','personal'].includes(dashboard.visibility)}/>:<p>Source insight is unavailable or you do not have access.</p>}</div></FormDialog>}
     </section>
   );
 }

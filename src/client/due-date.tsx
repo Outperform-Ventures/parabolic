@@ -1,7 +1,8 @@
 import {hasRelativeTimestampFilter} from '../shared/relative-date-filter';
 import React,{useEffect,useState} from 'react';
-import {Icon} from './components/ui';
+import {DueDateIcon} from './components/due-date-icon';
 import {dueDatePresentation} from './due-date-data';
+import './due-date.css';
 /** Calendar views wake at midnight; visible moving timestamp filters refresh each second. */
 export function useCalendarDay(filter?:unknown){
  const moving=hasRelativeTimestampFilter(filter);
@@ -20,8 +21,10 @@ export function useCalendarDay(filter?:unknown){
  },[moving]);
  return now;
 }
-export function DueDateIndicator({value,now}:{value:string;now:Date}){
+export function DueDateIndicator({value,now,onClick,expanded,buttonRef}:{value:string;now:Date;onClick?:()=>void;expanded?:boolean;buttonRef?:React.Ref<HTMLButtonElement>}){
  const result=dueDatePresentation(value,now);if(!result)return null;
  const tooltip=`${result.date.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'})} · ${result.relative}`;
- return <span className="issue-due-date" data-due-tone={result.tone} data-tooltip={tooltip} aria-label={tooltip} tabIndex={0} style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:'0.6875rem',color:result.tone==='urgent'?'var(--danger)':result.tone==='soon'?'#e59961':'var(--muted)'}}><Icon name="Calendar" size={12}/><time dateTime={value}>{result.date.toLocaleDateString(undefined,{month:'short',day:'numeric'})}</time></span>;
+ const content=<><DueDateIcon/><time dateTime={value}>{result.date.toLocaleDateString(undefined,{month:'short',day:'numeric'})}</time></>;
+ if(onClick)return <button ref={buttonRef} type="button" className="issue-due-date" data-due-tone={result.tone} data-tooltip={expanded?undefined:tooltip} aria-label="Change due date" aria-haspopup="menu" aria-expanded={expanded} onClick={e=>{e.stopPropagation();onClick();}} onKeyDown={e=>e.stopPropagation()}>{content}</button>;
+ return <span className="issue-due-date" data-due-tone={result.tone} data-tooltip={tooltip} aria-label={tooltip} tabIndex={0}>{content}</span>;
 }

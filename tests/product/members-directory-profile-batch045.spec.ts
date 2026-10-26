@@ -35,6 +35,7 @@ test('Members directory and profiles expose the retained native controls and vie
   await expect(page.locator('[data-group-field=statusId]')).toHaveCount(0);
   await page.getByRole('button',{name:'Display options',exact:true}).click();
   await expect(page.getByLabel('Grouping',{exact:true})).toHaveValue('none');await expect(page.getByLabel('Ordering',{exact:true})).toHaveValue('createdAt');await expect(page.getByLabel('Completed issues')).toHaveValue('all');await expect(page.getByLabel('Nested sub-issues')).toBeChecked();
-  for(const field of ['identifier','statusId','assigneeId','priority','projectId','dueDate','milestoneId','estimate','labelIds','links','customerCount','customerRevenue','timeInStatus','createdAt','updatedAt'])await expect(page.getByRole('button',{name:'Display '+field,exact:true})).toHaveAttribute('aria-pressed','true');
+  for(const field of ['identifier','statusId','assigneeId','priority','projectId','dueDate','estimate','labelIds','createdAt'])await expect(page.getByRole('button',{name:'Display '+field,exact:true})).toHaveAttribute('aria-pressed','true');
+  for(const field of ['milestoneId','links','customerCount','customerRevenue','timeInStatus','updatedAt'])await expect(page.getByRole('button',{name:'Display '+field,exact:true})).toHaveAttribute('aria-pressed','false');
  }finally{await app.close()}
 });

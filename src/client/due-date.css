@@ -1,0 +1,24 @@
+.issue-due-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+  white-space: nowrap;
+  --due-date-icon-color: #959597;
+}
+.issue-due-date[data-due-tone="soon"] { --due-date-icon-color: #ff7335; }
+.issue-due-date[data-due-tone="urgent"] {
+  --due-date-icon-color: var(--danger);
+  color: var(--danger);
+}
+.issue-due-date > .issue-due-date-icon {
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  color: var(--due-date-icon-color);
+}
+:root[data-theme="light"] .issue-due-date[data-due-tone="later"] {
+  --due-date-icon-color: var(--muted);
+}

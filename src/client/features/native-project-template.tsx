@@ -20,7 +20,7 @@ type Props={
 const priorities=['No priority','Urgent','High','Medium','Low'].map((label,value)=>({label,value:String(value)}));
 
 function Chip({label,icon,display,values,options,multiple=false,onChange}:{label:string;icon:string;display:string;values:string[];options:{value:string;label:string}[];multiple?:boolean;onChange:(values:string[])=>unknown}){
-  return <FeaturePropertyPicker label={label} values={values} options={options} multiple={multiple} onChange={onChange} triggerLabel={label} triggerClassName="native-project-chip" triggerContent={<><Icon name={icon as any} size={13}/><span>{display}</span></>}/>;
+  return <FeaturePropertyPicker label={label} values={values} options={options} multiple={multiple} onChange={onChange} triggerLabel={label} triggerClassName="native-project-chip" triggerContent={<><Icon name={icon as any} size={icon==='Triangle'?16:13}/><span>{display}</span></>}/>;
 }
 
 function ProjectProperties({value,onChange}:{value:Properties;onChange:(value:Properties)=>void}){

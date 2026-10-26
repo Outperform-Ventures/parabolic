@@ -4,7 +4,7 @@
 .project-workspace>.feature-header .feature-heading{padding:0 4px 0 10px;gap:0;font-size:.8125rem;font-weight:500;line-height:normal;color:var(--project-title)}
 .project-workspace>.feature-header .feature-button{height:28px;min-height:28px;padding:0 10px 0 8px;gap:8px;border:1px solid transparent;border-radius:9999px;background:transparent;box-shadow:none;font-size:.75rem;font-weight:500;line-height:normal;color:var(--project-muted)}
 .project-workspace>.feature-header .feature-button>svg{width:16px;height:16px}
-.project-workspace>.feature-header .feature-button:hover{background:var(--project-control-bg);color:var(--project-title)}
+.project-workspace>.feature-header .feature-button:hover{background:var(--project-control-bg);color: var(--hover-text)}
 .project-collection-contextual>.feature-project-toolbar{height:43px;padding:0 8px;gap:6px;border-bottom:0}
 .project-view-tabs{display:flex;align-items:center;gap:4px;height:100%;min-width:0;flex:1;overflow-x:auto;scrollbar-width:none}
 .project-view-tabs::-webkit-scrollbar{display:none}
@@ -22,6 +22,7 @@
 .project-collection-controls{display:flex;gap:6px;align-items:center;margin-left:auto;flex-shrink:0}
 .project-workspace .project-control{position:relative;border:1px solid transparent;border-radius:9999px;width:28px;height:28px;padding:0 2px;background:var(--project-control-bg);color:var(--project-muted)}
 .project-control:hover,.project-control.active{background:var(--project-tab-active);color:var(--project-row-text)}
+.project-control:hover { color: var(--hover-text); }
 .project-filter-count{position:absolute;top:-3px;right:-3px;background:var(--accent);color:white;border-radius:10px;min-width:14px;height:14px;display:grid;place-items:center;font-size:.5625rem}
 .project-display-layouts{display:flex;gap:6px;margin:10px 0 16px}
 .project-display-layouts>button{display:flex;flex:1;align-items:center;flex-direction:column;gap:7px;padding:11px 3px;border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--muted);font-size:.6875rem}

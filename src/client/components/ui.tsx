@@ -372,7 +372,8 @@ export function Avatar({
   return (
     <span
       className="avatar"
-      title={label}
+      data-tooltip-label={label}
+      aria-label={label}
       style={{
         width: size,
         height: size,
@@ -438,7 +439,7 @@ export function PriorityIcon({ priority = 0 }: { priority?: number }) {
   return (
     <span
       className={`priority-icon priority-${priority}`}
-      title={
+      data-tooltip-label={
         ["No priority", "Urgent", "High", "Medium", "Low"][priority] ??
         "No priority"
       }
@@ -753,6 +754,7 @@ export function Dropdown({
       )
         return;
       if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+        if (event.altKey && (event.target as HTMLElement).closest('.section-reorder-handle')) return;
         const items = Array.from(
           menu.current?.querySelectorAll<HTMLElement>(
             '[role^="menuitem"]:not([disabled]):not([hidden])',
@@ -826,6 +828,7 @@ export function Dropdown({
               maxWidth: "calc(100vw - 16px)",
               maxHeight: "calc(100vh - 16px)",
               overflowY: "auto",
+              overflowX: "hidden",
               zIndex: 100,
             }}
             onClick={(e) => {

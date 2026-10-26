@@ -3,10 +3,87 @@
 .menu:has(.sidebar-team-menu){overflow:visible!important}.sidebar-subscribe-anchor{position:relative}.sidebar-subscribe-menu{position:absolute;left:calc(100% + 5px);top:0;min-width:320px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:5px;box-shadow:0 8px 30px #0006}.sidebar-subscribe-menu:before{content:'';position:absolute;left:-8px;top:0;bottom:0;width:8px}.sidebar-subscribe-menu .menu-item{white-space:nowrap}.sidebar-subscribe-menu input{accent-color:var(--accent)}
 .modal-backdrop:has(.sidebar-customize){padding-top:12vh}.sidebar-customize{background:var(--popover);border-color:var(--popover-border);border-radius:10px}.sidebar-customize .modal-header{padding:20px 24px 12px}.sidebar-customize-body{padding:8px 24px 24px}.sidebar-customize-badge,.sidebar-customize-group{border:1px solid var(--popover-border);border-radius:6px;background:color-mix(in srgb,var(--popover) 85%,var(--text) 4%)}.sidebar-customize-badge{height:50px;padding:0 12px;font-size:13px}.sidebar-customize h3{color:var(--text);margin:22px 0 6px}.sidebar-customize-group{padding:7px 8px}.sidebar-customize-row{height:36px}.sidebar-customize-row>select{font-size:13px}.sidebar-customize-row>svg{width:14px;height:14px}.sidebar-reorder-handle{color:var(--subtle)}.sidebar-customize-badge>select{font-size:13px}
 @media(min-width:900px){body:has(.feature-settings-shell) .modal-backdrop:has(.sidebar-customize) .sidebar-customize{transform:translateX(118.5px)}}
-.team-heading>button:first-child:hover{background:var(--hover)}.team-heading>button:first-child .sidebar-disclosure{margin-left:0}.sidebar-choice{display:flex;align-items:center;gap:6px;padding:4px 8px;color:var(--muted);font:inherit;border:0;border-radius:5px;background:transparent;white-space:nowrap}.sidebar-choice:hover{background:var(--hover);color:var(--text)}.sidebar-choice-count{font-size:12px;color:var(--muted);margin-right:4px}.sidebar-choice-dot{width:6px;height:6px;background:var(--muted);border-radius:50%;margin-right:4px}.sidebar-customize-row>.dropdown{margin-left:auto}.sidebar-menu-content [hidden]{display:none!important}.sidebar-menu-query{padding:7px 9px;border-bottom:1px solid var(--border);font-size:13px;color:var(--muted)}
+.team-heading>button:first-child:hover{background:var(--hover)}.team-heading>button:first-child .sidebar-disclosure{margin-left:0}.sidebar-choice{display:flex;align-items:center;gap:6px;padding:4px 8px;color:var(--muted);font:inherit;border:0;border-radius:5px;background:transparent;white-space:nowrap}.sidebar-choice:hover{background:var(--hover);color: var(--hover-text)}.sidebar-choice-count{font-size:12px;color:var(--muted);margin-right:4px}.sidebar-choice-dot{width:6px;height:6px;background:var(--muted);border-radius:50%;margin-right:4px}.sidebar-customize-row>.dropdown{margin-left:auto}.sidebar-menu-content [hidden]{display:none!important}.sidebar-menu-query{padding:7px 9px;border-bottom:1px solid var(--border);font-size:13px;color:var(--muted)}
 .sidebar-docs{display:grid;grid-template-columns:220px 1fr;padding:12px 24px 28px;gap:24px;min-height:300px}.sidebar-docs nav{display:flex;flex-direction:column;gap:5px}.sidebar-docs input{width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);margin-bottom:8px}.sidebar-docs button{text-align:left;padding:8px;border-radius:5px;font-size:13px;color:var(--muted)}.sidebar-docs button.active{background:var(--hover);color:var(--text)}.sidebar-docs article{font-size:14px;line-height:1.65}.sidebar-docs h2{font-size:18px}
 
-.sidebar-subscribe-menu{position:fixed;min-width:0;width:320px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow-y:auto;box-sizing:border-box}.sidebar-subscribe-menu .menu-item{height:auto;min-height:32px;white-space:normal}.sidebar-subscribe-menu input{flex:none}.sidebar-subscribe-menu:before{left:-8px;right:-8px;width:auto;pointer-events:none}
+.sidebar-subscribe-menu{position:fixed;min-width:0;width:320px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow-y:auto;overflow-x:hidden;box-sizing:border-box}.sidebar-subscribe-menu .menu-item{height:auto;min-height:32px;white-space:normal}.sidebar-subscribe-menu input{flex:none}.sidebar-subscribe-menu:before{display:none}
 .sidebar-team[data-drag-over="true"]{box-shadow:0 -2px var(--accent)}.sidebar-team[draggable="true"]>.team-heading{cursor:grab}
 
 .sidebar-team[data-drag-over="true"][data-drag-after="true"]{box-shadow:0 2px var(--accent)}
+
+/* Sidebar labels use a consistent pixel size, independent of the content area's
+   type scale. Counts and shortcut hints retain their smaller helper sizes. */
+.sidebar {
+  --sidebar-font-size: 14px;
+}
+.sidebar :is(.workspace-name, .sidebar-link, .sidebar-section-title,
+  .team-heading > button:first-child, .favorite-folder-editor input) {
+  font-size: var(--sidebar-font-size);
+  line-height: 1.2;
+}
+
+/* The heading owns the remaining width; a second flex spacer used to squeeze
+   its anonymous text into two lines even in ordinary desktop windows. */
+.sidebar-teams-heading > button:first-child {
+  min-width: 0;
+  white-space: nowrap;
+}
+.sidebar-teams-heading > .icon-button {
+  flex: none;
+}
+
+/* These menus use 5px padding, unlike the shared menu's 6px. Keep dividers
+   inside that padding so a one-pixel overhang cannot create a scrollbar. */
+.sidebar-menu-content > .menu-separator {
+  margin-inline: -5px;
+}
+.sidebar-menu-query {
+  overflow-wrap: anywhere;
+}
+
+/* Navigation help belongs beside the hovered label, never in a floating copy
+   of it. Hide it completely at rest so counts and long names keep their room. */
+.sidebar .sidebar-link > .sidebar-label {
+  min-width: 0;
+  flex: 1;
+}
+.sidebar .sidebar-link > .sidebar-shortcut-hint {
+  display: none;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  overflow: visible;
+  white-space: nowrap;
+  font-size: 0.625rem;
+  line-height: 1;
+  color: var(--muted);
+  pointer-events: none;
+}
+.sidebar-shortcut-hint kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 15px;
+  height: 17px;
+  padding: 0 3px;
+  border: 1px solid var(--popover-border);
+  border-radius: 3px;
+  background: var(--control-bg);
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+}
+@media (min-width: 601px) {
+  .sidebar .sidebar-link:is(:hover, :focus-visible) > .sidebar-shortcut-hint {
+    display: inline-flex;
+  }
+}
+
+/* All three section labels use the same hover affordance. */
+button.sidebar-section-title:hover,
+.sidebar .sidebar-link:hover,
+.team-heading > button:first-child:hover,
+.favorite-section-heading > button:first-child:hover,
+.sidebar-teams-heading > button:first-child:hover {
+  color: var(--hover-text);
+}

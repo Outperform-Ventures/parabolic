@@ -1,0 +1,275 @@
+/* Settings are sized by the available panel, not by a reference screenshot.
+   Keep overflow visible here: overflowing content must reflow, not be hidden. */
+.feature-settings-shell .feature-settings-content {
+  width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.feature-settings-shell .feature-settings-main :is(
+  .notification-channel-settings, .workspace-template-settings, .sla-settings-page,
+  .project-status-settings, .project-update-settings, .document-settings-page,
+  .initiative-settings-page, .customer-settings, .asks-settings-page,
+  .integration-settings-page, .integration-detail-page, .workspace-settings-page,
+  .workspace-security-page, .applications-settings-page, .team-overview-header,
+  .team-overview-page, .team-overview-card, .integration-detail-overview,
+  .integration-featured, .integration-settings-page > .feature-search,
+  .customer-manage-card, .customer-enable-card, .feature-settings-card
+) {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-inline: 0;
+}
+.feature-settings-shell .issue-template-editor-content {
+  width: min(750px, 100%);
+}
+.feature-settings-shell :is(.feature-setting-title, .feature-settings-row) > div {
+  min-width: 0;
+}
+.feature-settings-shell .feature-settings-row > div:first-child {
+  min-width: 0;
+}
+.feature-settings-shell :is(input, select, textarea) {
+  min-width: 0;
+  max-width: 100%;
+}
+.feature-settings-shell :is(.feature-code, pre) {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.feature-settings-shell .settings-nav-scroll {
+  min-width: 0;
+}
+.feature-settings-shell .feature-settings-nav .feature-search {
+  min-width: 0;
+  width: 100%;
+}
+.feature-settings-shell .native-project-template-page {
+  width: min(750px, 100%);
+  max-width: 100%;
+}
+.feature-settings-shell .native-project-template-page .template-page-back {
+  left: 16px;
+}
+.feature-settings-shell :is(.native-project-property-row, .native-project-properties) {
+  flex-wrap: wrap;
+  white-space: normal;
+}
+.feature-settings-shell .feature-settings-nav h4 {
+  height: auto;
+  overflow-wrap: anywhere;
+}
+.feature-settings-shell :is(.notification-channel-back, .integration-detail-back) {
+  margin-left: 16px;
+}
+.feature-settings-shell :is(.teams-table, .members-table) {
+  width: 100%;
+  margin-inline: 0;
+}
+.feature-settings-shell :is(.teams-table-head, .teams-table-row) {
+  grid-template-columns: minmax(0, 2.5fr) repeat(4, minmax(0, 1fr)) 32px;
+}
+.feature-settings-shell :is(.members-table-head, .members-table-row) {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) repeat(4, minmax(0, 1fr)) 32px;
+}
+.feature-settings-shell :is(.teams-table-head, .teams-table-row, .members-table-head, .members-table-row),
+.feature-settings-shell .members-settings-page .feature-settings-row.members-table-row {
+  height: auto;
+  min-height: 44px;
+  padding: 10px 8px;
+  gap: 12px;
+}
+.feature-settings-shell :is(.teams-table-head, .teams-table-row, .members-table-head, .members-table-row) > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.feature-settings-shell :is(.teams-table-head, .members-table-head) button {
+  white-space: normal;
+  height: auto;
+  padding-inline: 0;
+}
+.feature-settings-shell :is(.teams-table-group, .members-table-group) {
+  padding-inline: 8px;
+}
+.feature-settings-shell .member-identity {
+  height: auto;
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 3px;
+}
+.feature-settings-shell .member-identity > :is(.feature-person, span) {
+  transform: none;
+}
+.feature-settings-shell .member-identity > .feature-person {
+  grid-column: 1 / -1;
+}
+.feature-settings-shell .member-identity > small {
+  position: static;
+  grid-column: 2;
+}
+.feature-settings-shell :is(.teams-toolbar, .members-toolbar, .label-settings-toolbar) {
+  display: flex;
+  flex-wrap: wrap;
+  height: auto;
+  gap: 8px;
+}
+.feature-settings-shell :is(.teams-toolbar, .members-toolbar, .label-settings-toolbar) > .feature-search {
+  flex: 1 1 200px;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.feature-settings-shell :is(.teams-toolbar, .members-toolbar) > div:empty {
+  display: none;
+}
+.feature-settings-shell .label-table-head {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+}
+.feature-settings-shell .label-table-head button:first-child {
+  grid-column: auto;
+}
+.feature-settings-shell .label-new-row {
+  grid-template-columns: 24px minmax(0, 2fr) minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+}
+.feature-settings-shell .notification-schedule-controls {
+  height: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.feature-settings-shell .notification-day-picker {
+  flex-wrap: wrap;
+}
+.feature-settings-shell .project-update-slack > p {
+  white-space: normal;
+}
+.feature-settings-shell .asks-row-actions {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+.feature-settings-shell .integration-featured-art {
+  left: 50%;
+  right: auto;
+  width: min(288px, calc(100% - 32px));
+  transform: translateX(-50%);
+}
+.feature-settings-shell .integration-featured-copy {
+  right: 16px;
+}
+.feature-settings-shell .integration-featured-tabs {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.feature-settings-shell .integration-category .feature-provider-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+}
+
+/* Dialogs are portaled outside the settings shell. Remove screenshot-specific
+   offsets while settings is active so forms stay inside the actual viewport. */
+body:has(.feature-settings-shell) :is(dialog.feature-dialog, .modal) {
+  max-width: calc(100vw - 32px);
+  min-width: 0;
+  transform: none;
+  margin-inline: auto;
+  overflow-wrap: anywhere;
+}
+body:has(.feature-settings-shell) :is(.feature-dialog, .modal) :is(input, select, textarea) {
+  min-width: 0;
+  max-width: 100%;
+}
+body:has(.feature-settings-shell) .modal-backdrop:has(.template-type-dialog) {
+  padding-top: min(15vh, 120px);
+}
+body:has(.feature-settings-shell) .template-editor .modal-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+body:has(.feature-settings-shell) .template-editor-basics {
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr));
+}
+body:has(.feature-settings-shell) .template-editor .field {
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  body:has(.feature-settings-shell) .template-editor-basics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container settings-content (max-width: 700px) {
+  .feature-settings-shell :is(.teams-table-row, .members-table-row) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    position: relative;
+    padding: 16px 8px;
+  }
+  .feature-settings-shell :is(.teams-table-row, .members-table-row) > :first-child {
+    grid-column: 1 / -1;
+    padding-right: 36px;
+  }
+  .feature-settings-shell :is(.teams-table-row, .members-table-row) > :last-child {
+    position: absolute;
+    right: 8px;
+    top: 12px;
+  }
+  .feature-settings-shell :is(.teams-table-head, .members-table-head) {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .feature-settings-shell :is(.teams-table-row, .members-table-row) > :not(:first-child):not(:last-child)::before {
+    display: block;
+    color: var(--settings-description);
+    font-size: 11px;
+    font-weight: 400;
+    margin-bottom: 4px;
+  }
+  .feature-settings-shell .teams-table-row > :nth-child(2)::before { content: 'Visibility'; }
+  .feature-settings-shell .teams-table-row > :nth-child(3)::before { content: 'Members'; }
+  .feature-settings-shell .teams-table-row > :nth-child(4)::before { content: 'Issues'; }
+  .feature-settings-shell .teams-table-row > :nth-child(5)::before { content: 'Created'; }
+  .feature-settings-shell .members-table-row > :nth-child(2)::before { content: 'Email'; }
+  .feature-settings-shell .members-table-row > :nth-child(3)::before { content: 'Status'; }
+  .feature-settings-shell .members-table-row > :nth-child(4)::before { content: 'Joined'; }
+  .feature-settings-shell .members-table-row > :nth-child(5)::before { content: 'Teams'; }
+  .feature-settings-shell .members-table-row > :nth-child(6)::before { content: 'Last seen'; }
+}
+
+@container settings-content (max-width: 600px) {
+  .feature-settings-shell :is(.feature-setting-title, .team-overview-header) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .feature-settings-shell :is(.feature-settings-card, .team-overview-card) {
+    height: auto;
+  }
+  .feature-settings-shell :is(.feature-settings-row, .feature-between, .sla-automation-header,
+    .project-update-card, .project-update-integration, .project-update-inline-editor,
+    .customer-inline-editor, .customer-list-header) {
+    flex-wrap: wrap;
+    height: auto;
+    gap: 12px;
+  }
+  .feature-settings-shell .project-update-card { padding-block: 12px; }
+  .feature-settings-shell :is(.settings-connected-card, .settings-session-row, .settings-domain-row) {
+    height: auto;
+    min-height: 66px;
+    padding-block: 14px;
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+  .feature-settings-shell :is(.settings-connected-card, .settings-session-row, .settings-domain-row) > :last-child:not(:nth-child(2)) {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .feature-settings-shell :is(.team-overview-row, .team-overview-static-row, .team-overview-danger-row) {
+    height: auto;
+    min-height: 66px;
+    padding-block: 14px;
+  }
+  .feature-settings-shell .team-overview-row-copy small {
+    white-space: normal;
+  }
+  .feature-settings-shell .team-overview-danger .team-overview-danger-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .feature-settings-shell .integration-featured-copy small { font-size: 13px; }
+}

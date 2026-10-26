@@ -6,6 +6,7 @@ import {
   type NestedIssueGroup,
 } from "./issue-groups";
 import { Icon } from "./components/ui";
+import type { useSectionReorder } from "./section-reorder";
 
 /** Virtualize both row groups and card columns, then let each cell virtualize its cards. */
 export function IssueSwimlaneBoard({
@@ -18,6 +19,7 @@ export function IssueSwimlaneBoard({
   renderCell,
   onDrop,
   countBy,
+  sectionReorder,
 }: {
   columns: NestedIssueGroup[];
   rows: IssueSwimlane[];
@@ -28,6 +30,7 @@ export function IssueSwimlaneBoard({
   renderCell: (group: NestedIssueGroup) => React.ReactNode;
   onDrop: (event: React.DragEvent, group: NestedIssueGroup) => void;
   countBy: "issues" | "estimate";
+  sectionReorder?: ReturnType<typeof useSectionReorder>;
 }) {
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const rowVirtual = useVirtualizer({
@@ -134,9 +137,11 @@ export function IssueSwimlaneBoard({
               }}
             >
               <div
-                className="swimlane-row-label"
+                className="swimlane-row-label reorderable-section"
+                {...sectionReorder?.headerProps(secondary, row.id)}
                 style={{ width: scrollRef.current?.clientWidth }}
               >
+                {sectionReorder?.handle(secondary, row.id, row.name)}
                 <button
                   type="button"
                   className="icon-button"

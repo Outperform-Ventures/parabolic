@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { resolve } from "node:path";
 import { createApp } from "../../src/server/app";
 
-test("composer More actions matches the retained filter, inventory, due-date, and link contract", async ({ page }) => {
+test("composer field settings retain issue actions and expose an editable due-date chip", async ({ page }) => {
   const app = createApp({ databasePath: ":memory:", port: 0, staticDir: resolve("dist") });
   const { url } = await app.start();
   try {
@@ -10,24 +10,24 @@ test("composer More actions matches the retained filter, inventory, due-date, an
     await page.goto(url + "/my-issues");
     await page.getByRole("button", { name: "Create new issue", exact: true }).click();
     await page.getByRole("button", { name: "More actions", exact: true }).click();
+    await page.getByRole('menuitemcheckbox', {name:'Due date',exact:true}).click();
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', {name:'Set due date',exact:true}).click();
+    await page.getByRole('menuitem', {name:/Tomorrow/}).click();
+    await expect(page.locator('.issue-composer .composer-properties time')).toHaveCount(1);
+    await page.getByRole('button', {name:'More actions',exact:true}).click();
+    await page.locator('.composer-settings-actions > summary').click();
 
     const filter = page.getByRole("searchbox", { name: "Filter issue actions", exact: true });
     await expect(filter).toBeFocused();
     await expect(page.getByRole("status", { name: "" }).filter({ hasText: "Showing all items" })).toBeAttached();
-    for (const label of ["Set due date", "Make recurring…", "Add link…", "Add customer request…", "Add sub-issue"])
+    for (const label of ["Add link…", "Add customer request…", "Add sub-issue"])
       await expect(page.getByRole("menuitem").filter({ hasText: label })).toBeVisible();
 
     await filter.fill("link");
     await expect(page.getByRole("menuitem", { name: /^Add link…/ })).toBeVisible();
-    await expect(page.getByRole("menuitem", { name: /^Set due date/ })).toBeHidden();
+    await expect(page.getByRole("menuitem", { name: /^Add sub-issue/ })).toBeHidden();
     await filter.fill("");
-    await page.getByRole("menuitem", { name: /^Set due date/ }).click();
-    await expect(page.getByRole("menu", { name: "Set due date", exact: true })).toBeVisible();
-    await page.getByRole("menuitem", { name: /Tomorrow/ }).click();
-    await expect(page.locator(".issue-composer .composer-properties time")).toHaveCount(1);
-
-    await page.getByLabel("Issue title", { exact: true }).click();
-    await page.getByRole("button", { name: "More actions", exact: true }).click();
     await page.getByRole("menuitem", { name: /^Add link…/ }).click();
     const linkDialog = page.getByRole("dialog", { name: "Edit link", exact: true });
     await expect(linkDialog).toBeVisible();
@@ -48,6 +48,7 @@ test("composer More actions continue into linked customer and child issue flows"
     await page.getByRole("button", { name: "Create new issue", exact: true }).click();
     await page.getByLabel("Issue title", { exact: true }).fill("Parent from actions");
     await page.getByRole("button", { name: "More actions", exact: true }).click();
+    await page.locator('.composer-settings-actions > summary').click();
     await page.getByRole("menuitem", { name: /^Add sub-issue/ }).click();
     await expect(page.getByLabel("Issue title", { exact: true })).toBeFocused();
     await expect(page.locator('.issue-composer [data-property="teamId"]')).toBeVisible();
@@ -61,9 +62,10 @@ test("composer More actions continue into linked customer and child issue flows"
 
     await page.keyboard.press("Escape");
     await expect(page.locator(".issue-composer")).toHaveCount(0);
-    await page.getByRole("button", { name: "Create new issue", exact: true }).click();
+    await page.getByRole('complementary').getByRole("button", { name: "Create new issue", exact: true }).click();
     await page.getByLabel("Issue title", { exact: true }).fill("Customer-linked issue");
     await page.getByRole("button", { name: "More actions", exact: true }).click();
+    await page.locator('.composer-settings-actions > summary').click();
     await page.getByRole("menuitem", { name: /^Add customer request…/ }).click();
     const requestDialog = page.getByRole("dialog", { name: "New customer request", exact: true });
     await expect(requestDialog).toBeVisible();

@@ -95,7 +95,11 @@
 }
 .saved-view-inline-tools button:hover {
   background: var(--hover);
-  color: var(--text);
+  color: var(--hover-text);
+}
+.saved-view-inline-tools .circle-button {
+  width: 28px;
+  padding: 0;
 }
 .saved-view-inline-editor > .error-text {
   margin: 0 12px 8px;

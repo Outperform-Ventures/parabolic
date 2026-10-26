@@ -54,7 +54,7 @@
 .customer-status-menu>button.active{background:var(--hover)}
 .customer-status-menu>button>span:nth-child(2){flex:1}
 :root[data-theme=light] .customer-editor .customer-status-trigger{background:var(--panel)}
-.customer-status-menu{max-height:calc(100vh - 16px);overflow-y:auto;overscroll-behavior:contain}
+.customer-status-menu{max-height:calc(100vh - 16px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
 .customer-owner-select,.customer-owner-select>.dropdown-trigger{display:flex;width:100%;min-width:0}
 .customer-editor .customer-owner-trigger{height:30px;width:100%;display:flex;align-items:center;gap:8px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:transparent;font-size:12px;font-weight:500;text-align:left}
 .customer-owner-trigger>span:nth-child(2){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

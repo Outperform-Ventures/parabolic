@@ -1,0 +1,34 @@
+.workspace-shell > .shell-main { position: relative; }
+.sidebar {
+  container: sidebar / inline-size;
+  width: var(--sidebar-preview-width, var(--sidebar-width));
+}
+.sidebar[hidden] { display: none; }
+.workspace-shell[data-sidebar-preview-collapsed="false"] .sidebar[hidden] { display: flex; }
+.workspace-shell[data-sidebar-preview-collapsed="true"] .sidebar { display: none; }
+.workspace-shell[data-sidebar-preview-collapsed="true"] .main-panel { margin-left: 8px; }
+.workspace-shell[data-sidebar-preview-collapsed="false"] .main-panel { margin-left: 0; }
+.sidebar-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: max(0px, calc(var(--sidebar-preview-width, var(--sidebar-width)) - 5px));
+  width: 10px;
+  z-index: 15;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  -webkit-app-region: no-drag;
+  outline: none;
+}
+/* Pointer interaction is indicated by the resize cursor only. Keep a neutral
+   focus indicator for keyboard navigation, without painting a drag rail. */
+.sidebar-resize-handle:focus-visible:not([data-pointer-focus]) {
+  outline: 1px solid var(--muted);
+  outline-offset: -3px;
+}
+.sidebar-is-resizing .sidebar-resize-handle { outline: none; }
+body.sidebar-is-resizing, body.sidebar-is-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}

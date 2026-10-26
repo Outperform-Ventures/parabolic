@@ -22,5 +22,5 @@ export function EditorAuthorship({editor,state}:{editor:Editor;state:Collaborati
   const resize=new ResizeObserver(schedule);resize.observe(root);editor.on('update',schedule);root.addEventListener('toggle',schedule,true);schedule();void document.fonts.ready.then(schedule);
   return()=>{disposed=true;cancelAnimationFrame(frame);resize.disconnect();editor.off('update',schedule);root.removeEventListener('toggle',schedule,true)};
  },[editor,state.doc,state.authorship]);
- return <div className="editor-authorship" aria-label="Document authors">{labels.map(label=>{const names=label.authors.map(id=>id?displayNameFor(data.users.find(user=>user.id===id),data,'Unknown author'):'Unknown author').join(', ');return <span key={label.position} className="editor-author-name" style={{top:label.top}} title={names}>{names}</span>})}</div>;
+ return <div className="editor-authorship" aria-label="Document authors">{labels.map(label=>{const names=label.authors.map(id=>id?displayNameFor(data.users.find(user=>user.id===id),data,'Unknown author'):'Unknown author').join(', ');return <span key={label.position} className="editor-author-name" style={{top:label.top}} data-tooltip-label={names}>{names}</span>})}</div>;
 }

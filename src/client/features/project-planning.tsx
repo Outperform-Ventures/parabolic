@@ -1,3 +1,4 @@
+import {CustomerAssignmentControl} from '../customer-assignment-picker';
 import {displayNameFor} from '../display-name';
 import {EntityIcon} from './entity-icon';
 import {milestoneStatistics,projectStatistics,progressPercentage} from '../../shared/milestone-progress';
@@ -24,6 +25,7 @@ export function ProjectPlanningSidebar({project,onAddResource,readOnly=false}:{p
  return <aside className="feature-properties-panel project-planning-sidebar" aria-label="Project details"><fieldset className="project-planning-fields" disabled={readOnly}>
   <div className="feature-properties-card project-properties-card"><button type="button" className="project-sidebar-section-toggle" aria-label={`${propertiesOpen?'Collapse':'Expand'} properties section`} aria-expanded={propertiesOpen} onClick={()=>setPropertiesOpen(open=>!open)}><span>Properties</span><Icon name={propertiesOpen?'ChevronDown':'ChevronRight'} size={12}/></button>{propertiesOpen&&<div className="project-properties-card-body">
    <ProjectDependencies project={project} compact/>
+   <div className="feature-property"><span>Customers</span><CustomerAssignmentControl entity={project} kind="projects" disabled={readOnly}/></div>
    <Property label="Status" value={project.status} options={projectStatusOptions(data).map((option,index)=>({...option,shortcut:String(index+1)}))} searchLabel="Change status…" dialogLabel="Menu" shortcutHint="P, then S" onChange={status=>patch({status})}/>
    <Property label="Priority" value={project.priority} options={priorities.map(option=>({...option,shortcut:option.value}))} searchLabel="Change priority…" dialogLabel="Menu" shortcutHint="P, then P" onChange={value=>patch({priority:Number(value)})}/>
    <Property label="Lead" value={project.leadId} options={leadOptions} searchLabel="Set lead…" dialogLabel="Menu" shortcutHint="P, then A" inviteSectionLabel="New user" inviteLabel="Invite and add…" onChange={leadId=>patch({leadId})}/>

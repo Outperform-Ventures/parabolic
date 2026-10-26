@@ -159,6 +159,7 @@ export function InsightScatter({
           tabIndex={0}
           aria-label={`Issue scatterplot, ${points.length} plotted issues. Use arrow keys to inspect points and Enter to open an issue.`}
           data-point-count={points.length}
+          data-clickable={selected ? "true" : undefined}
           data-highlighted-point-count={highlight?points.filter(highlighted).length:0}
           onMouseMove={(e) => selectPoint(hit(e))}
           onMouseLeave={() => selectPoint(null)}

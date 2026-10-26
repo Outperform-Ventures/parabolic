@@ -16,7 +16,7 @@ export function ProjectWorkspace({view,teamId,onCreate}:{view?:Row;teamId?:strin
  const {data,update,remove,batch,act}=useActions(),navigate=useNavigate();
  const scope=view?projectPageScope(view):teamId||'workspace',scopeTeam=scope==='workspace'?undefined:scope,home=scopeTeam?`/team/${scopeTeam}/projects`:'/projects';
  const views=attachedProjectViews(data.views,scope),layoutKey=`project-layout:${data.workspaceId}:${view?.id||scope}`;
- const readLayout=()=>{try{const value=localStorage.getItem(layoutKey);return ['List','Board','Timeline'].includes(value||'')?value!:view?.layout||'List'}catch{return view?.layout||'List'}};
+ const readLayout=()=>{try{const value=localStorage.getItem(layoutKey);return ['List','Board','Calendar','Timeline'].includes(value||'')?value!:view?.layout||'List'}catch{return view?.layout||'List'}};
  const [layout,setLayout]=useState(readLayout),[editor,setEditor]=useState<{view?:Row;state?:ProjectViewState}|null>(null),[deleting,setDeleting]=useState<Row|null>(null),[dragging,setDragging]=useState<string|null>(null),[dropTarget,setDropTarget]=useState<string|null>(null),[pending,setPending]=useState(false);
  useEffect(()=>setLayout(readLayout()),[layoutKey,view?.layout]);
  const chooseLayout=(value:string)=>{setLayout(value);localStorage.setItem(layoutKey,value)};

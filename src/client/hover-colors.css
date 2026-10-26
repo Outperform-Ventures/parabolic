@@ -1,0 +1,13 @@
+/* Keep shared hover colors above unlayered feature-specific resting colors.
+   Status icons, badges, disabled controls and non-hover selection colors keep
+   their own semantics; only controls with text-hover affordances are targeted. */
+.text-button:hover:not(:disabled),
+.button.ghost:hover:not(:disabled),
+.icon-button:hover:not(:disabled),
+.property-button:hover:not(:disabled),
+.issue-selection-toolbar .selection-action:hover:not(:disabled),
+.sidebar-link:hover,
+.page-tabs > a:hover,
+.page-tabs > button:hover:not(:disabled) {
+  color: var(--hover-text);
+}

@@ -163,13 +163,13 @@ test("project issues match native scoped filters, row actions, selection, groupi
     ).toContainText(started.name);
     await expect(
       composer.getByLabel("Quick suggestions", { exact: true }),
-    ).toBeVisible();
+    ).toHaveCount(0);
     await expect(
       composer.getByRole("button", {
         name: `Apply suggested "${milestone.name}" milestone`,
         exact: true,
       }),
-    ).toBeVisible();
+    ).toHaveCount(0);
     await expect(
       composer.getByRole("button", { name: "Change milestone", exact: true }),
     ).toBeVisible();

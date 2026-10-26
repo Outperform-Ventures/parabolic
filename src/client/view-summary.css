@@ -86,6 +86,7 @@
   color: var(--text);
   background: var(--panel);
 }
+.view-summary-filter:hover .view-summary-quick-filter { color: var(--hover-text); }
 .view-summary-count {
   border-radius: 4px;
   padding: 4px 6px;
@@ -94,7 +95,7 @@
   font-variant-numeric: tabular-nums;
 }
 .view-summary-count:hover {
-  color: var(--text);
+  color: var(--hover-text);
   background: var(--panel);
 }
 .view-summary-label {

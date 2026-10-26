@@ -46,6 +46,7 @@ const kinds: Record<string, keyof WorkspaceData> = {
   projectLabelIds: "labels",
   teamId: "teams",
   customerId: "customers",
+  effectiveCustomerIds: "customers",
   milestoneId: "milestones",
 };
 
@@ -124,10 +125,10 @@ export function groupIssues(
                   ? myActivityGroupLabel(id)
                   : (field==='assigneeId'&&entity?displayNameFor(entity,data):entity?.name ??
                     entity?.title ??
-                    `No ${field
+                    (field === "effectiveCustomerIds" ? "No customer" : `No ${field
                       .replace(/Ids?$/, "")
                       .replace(/([A-Z])/g, " $1")
-                      .toLowerCase()}`),
+                      .toLowerCase()}`)),
       color: entity?.color,
       entity,
       issues: [],
@@ -172,6 +173,7 @@ export function groupIssues(
       values = [myActivityGroupDate(String(issue.activityAt ?? issue.updatedAt))];
     else if (field === "none") values = ["all"];
     else if (field === "projectLabelIds") {const ids=upstream!.get(issue.projectId)||[];values=ids.length?ids:["none"];}
+    else if (field === "effectiveCustomerIds") values = issue.effectiveCustomerIds?.length ? issue.effectiveCustomerIds : ["none"];
     else if (field === "labelIds")
       values = issue.labelIds?.length ? issue.labelIds : ["none"];
     else values = [String(issue[field] ?? "none")];
@@ -224,6 +226,7 @@ export function issueGroupPatch(
   issue?: Entity,
   sourceGroup?: string,
 ): Record<string, any> {
+  if(field==='effectiveCustomerIds')return issue ? {} : {directCustomerIds:id==='none'?[]:[id],inheritProjectCustomers:id!=='none'};
   if(isIssueLabelGroup(field)){
     const members=issueLabelsInGroup(field,data),ids=new Set(members.map(l=>l.id));
     const selected=members.find(l=>l.id===id);
@@ -302,6 +305,7 @@ export function nestIssueGroups(
   teamId?: string,
   showEmpty = false,
   groupOrder: string[] = [],
+  secondaryOrder: string[] = [],
 ) {
   const columns: NestedIssueGroup[] = groupIssues(
     issues,
@@ -323,6 +327,7 @@ export function nestIssueGroups(
     data,
     teamId,
     showEmpty,
+    secondaryOrder,
   ).map((group) => ({ ...group, cells: new Map() }));
   const memberships = new Map<string, IssueSwimlane[]>();
   for (const row of rows)
@@ -410,6 +415,7 @@ export function issueGroupCreationDefaults(group: Pick<NestedIssueGroup, 'path'>
 
 export function issueGroupMoveError(path: IssueGroupPath, issue: Entity, data: WorkspaceData, multiple=false): string | null {
  if(acceptsIssueGroupPath(path,issue,data))return null;
+ if(path.some(item=>item.field==='effectiveCustomerIds'))return 'Use the customer picker to change direct customers or project inheritance.';
  const projected={...issue,...issueGroupPathPatch({path:path.filter(item=>!['focus','slaStatus','activityAt','projectLabelIds'].includes(item.field))},data,issue)};
  if(projected.statusId&&data.statuses.find(status=>status.id===projected.statusId)?.teamId!==projected.teamId)return 'Status belongs to another team';
  const labelError=labelPathError(path,issue,data,projected);if(labelError)return labelError;

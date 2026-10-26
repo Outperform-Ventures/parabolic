@@ -193,6 +193,7 @@ export function InitiativeGraph({
                   >
                     <path
                       d={area}
+                      data-clickable="true"
                       fill={color}
                       fillOpacity={chosen ? 0.3 : active ? 0.04 : 0.085}
                       onMouseEnter={() => setHovered(series.project.id)}

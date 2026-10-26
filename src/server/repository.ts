@@ -1,6 +1,8 @@
 import {projectPropertyIndex,withProjectProperties,usesProjectProperties,projectLabelConditionEntity} from '../shared/project-property-filter.ts';
 import {projectedStatusTime,prepareStatusTime} from './issue-status-time';
 import {statusTimeFields} from '../shared/issue-status-time';
+import {validateCustomerAssignments, presentCustomerAssignments} from './customer-assignments';
+import {usesCustomerAssignments} from '../shared/customer-assignments';
 import {matchCustomerValue} from '../shared/customer-quick-filter';
 import {withIssueQuickFilter,usesIssueQuickFilter} from '../shared/issue-quick-filter';
 import {resolveCurrentUserFilter} from '../shared/current-user-filter';
@@ -206,7 +208,7 @@ export class Repository {
       if((kind==='comments'||kind==='updates')&&e&&e.authorId!==actor.userId&&!['owner','admin'].includes(actor.role))throw new HttpError(403,'Only the author can edit this comment','FORBIDDEN');
     }
   }
-  present(actor:Actor,kind:string,e:RecordEntity){const key=actor.userId+':'+actor.workspaceId+':'+actor.role+':'+actor.scopes.join(',');if(this.representations.get(e)===key)return e;const result=presentEntity(this,actor,kind,kind==='issues'?projectedStatusTime(this,e):e);this.representations.set(result,key);return result;}
+  present(actor:Actor,kind:string,e:RecordEntity){const key=actor.userId+':'+actor.workspaceId+':'+actor.role+':'+actor.scopes.join(',');if(this.representations.get(e)===key)return e;const result=presentCustomerAssignments(this,actor,kind,presentEntity(this,actor,kind,kind==='issues'?projectedStatusTime(this,e):e));this.representations.set(result,key);return result;}
   get(actor:Actor,kind:string,id:string,includeDeleted=false) {
     let e=this.raw(kind,id,includeDeleted);
     if(!e&&kind==='issues'&&/^[a-z][a-z0-9]{0,9}-[1-9][0-9]*$/i.test(id)){
@@ -225,7 +227,7 @@ export class Repository {
     const projectLabelEnriched=kind==='issues'&&usesProjectLabels(opts.filter);
     const projectPropertyEnriched=kind==='issues'&&usesProjectProperties(opts.filter);
     const quickEnriched=kind==='issues'&&usesIssueQuickFilter(opts.filter);
-    const enriched=projectPropertyEnriched||quickEnriched||dependencyEnriched||customerEnriched||projectLabelEnriched||(['issues','activities'].includes(kind)&&usesCycleTiming(opts.filter));
+    const enriched=(['issues','projects'].includes(kind)&&usesCustomerAssignments(opts.filter))||projectPropertyEnriched||quickEnriched||dependencyEnriched||customerEnriched||projectLabelEnriched||(['issues','activities'].includes(kind)&&usesCycleTiming(opts.filter));
     const validatedFilter=filterSql(enriched?undefined:opts.filter);
     const rawFilterSafe=!enriched&&exactFilter(opts.filter,kind)&&canReadAllParents(this,actor);
     const compiled=rawFilterSafe?validatedFilter:{sql:'1',params:[]};
@@ -341,7 +343,9 @@ export class Repository {
     if(e.duplicateOfId){assert(kind==='issues'&&e.duplicateOfId!==e.id,422,'Invalid duplicate relation','INVALID_RELATION');if(!(previous?.duplicateOfId===e.duplicateOfId&&sharedIssueAccess(this,actor,e)))this.get(actor,'issues',e.duplicateOfId);}
     for(const field of ['dueDate','targetDate','startDate','endDate','snoozedUntil','nextRunAt'])if(e[field])assert(typeof e[field]==='string'&&Number.isFinite(Date.parse(e[field])),422,`${field} must be an ISO date`,'VALIDATION_ERROR');
     if(e.startDate&&e.endDate)assert(Date.parse(e.startDate)<Date.parse(e.endDate),422,'End date must be after start date','VALIDATION_ERROR');
+    if(kind==='issues'&&e.startDate&&e.dueDate&&(!previous||Object.hasOwn(provided,'startDate')||Object.hasOwn(provided,'dueDate')))assert(Date.parse(e.startDate)<=Date.parse(e.dueDate),422,'Due date must be on or after start date','VALIDATION_ERROR');
     if(kind==='initiatives')validateInitiative(this,actor,e,previous);
+    validateCustomerAssignments(this,actor,kind,e,previous);
     if(kind==='customers')validateCustomer(this,actor,e,previous,provided);
     if(kind==='requests')validateRequest(this,e,actor,previous);
     if(kind==='workspaces'){validateCustomerSettings(this,actor,e);if(e.workWeek!==undefined)assert(['mon-fri','sun-thu'].includes(e.workWeek),422,'Choose Monday–Friday or Sunday–Thursday business days','INVALID_WORK_WEEK');}

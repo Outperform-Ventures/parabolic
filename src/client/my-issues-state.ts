@@ -4,8 +4,7 @@ export const myIssueTabs=['Assigned','Created','Subscribed','Activity','Shared']
 export type MyIssueTab=typeof myIssueTabs[number];
 export function myIssueTab(search:string):MyIssueTab{const value=new URLSearchParams(search).get('tab');return myIssueTabs.includes(value as MyIssueTab)?value as MyIssueTab:'Assigned';}
 export function myIssueDisplay(tab:string){return {groupBy:tab==='Assigned'?'focus':tab==='Activity'?'activityAt':'none',orderBy:(tab==='Created'||tab==='Subscribed')?'createdAt':tab==='Activity'?'activityAt':'priority',direction:(tab==='Created'||tab==='Subscribed'||tab==='Activity'?'desc':'asc') as 'desc'|'asc',showEmpty:false,...(tab==='Activity'?{groupCount:'estimate',properties:['estimate','identifier','statusId','priority','assigneeId','projectId','dueDate','labelIds','activityAt']}:{} )};}
-const profileProperties=['identifier','statusId','assigneeId','priority','projectId','dueDate','milestoneId','estimate','labelIds','links','customerCount','customerRevenue','timeInStatus','createdAt','updatedAt'];
-export function profileIssueDisplay(tab:string){return {groupBy:tab==='Created'?'none':'statusId',orderBy:tab==='Created'?'createdAt':'priority',direction:(tab==='Created'?'desc':'asc') as 'desc'|'asc',showCompleted:true,completedWindow:'all',showEmpty:false,showSubIssues:true,nestedSubIssues:true,properties:[...profileProperties]};}
+export {profileIssueDisplay} from './profile-display';
 export function myActivityGroupDate(value:string,now=Date.now()):string{
  const date=new Date(value);if(!Number.isFinite(+date))return '';
  const previousWeek=new Date(now-7*86400000);previousWeek.setDate(previousWeek.getDate()-previousWeek.getDay());previousWeek.setHours(0,0,0,0);

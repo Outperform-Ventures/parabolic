@@ -32,7 +32,7 @@ test('filter cascades retain parent searches, scope keyboard navigation, and sta
    for(const r of bounds){expect(r.left).toBeGreaterThanOrEqual(7);expect(r.right).toBeLessThanOrEqual(width-7);expect(r.top).toBeGreaterThanOrEqual(7);expect(r.bottom).toBeLessThanOrEqual(593);}
    if(width>=800){expect(bounds[1].right).toBeLessThanOrEqual(bounds[0].left+3);expect(bounds[2].right).toBeLessThanOrEqual(bounds[1].left+3);}
    await page.screenshot({path:`artifacts/verification/issue-filter-parity/cascade-${width}.png`});
-   await page.keyboard.press('Escape');
+   for(let level=2;level>=0;level--){await page.keyboard.press('Escape');await expect(panels).toHaveCount(level);}
   }
   await trigger.click();await root.fill('no such field zzz');await page.keyboard.press('Enter');await expect(panels).toHaveCount(1);await expect(root).toBeFocused();
   await page.locator('h1').first().click();await expect(panels).toHaveCount(0);

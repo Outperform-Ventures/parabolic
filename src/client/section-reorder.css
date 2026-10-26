@@ -1,0 +1,29 @@
+.reorderable-section { position: relative; }
+.reorderable-section[draggable="true"] { cursor: grab; }
+.reorderable-section[data-section-dragging="true"] { opacity: .55; }
+/* A separate square-ended insertion line must not follow the card's radius. */
+.reorderable-section[data-section-drop]::after {
+  content: ""; position: absolute; z-index: 2; pointer-events: none;
+  left: 0; right: 0; height: 2px; border-radius: 0; background: var(--accent);
+}
+.reorderable-section[data-section-drop="before"]::after { top: 0; }
+.reorderable-section[data-section-drop="after"]::after { bottom: 0; }
+.reorderable-section[data-section-axis="horizontal"][data-section-drop]::after {
+  top: 0; bottom: 0; width: 2px; height: auto; left: auto; right: auto;
+}
+.reorderable-section[data-section-axis="horizontal"][data-section-drop="before"]::after { left: 0; }
+.reorderable-section[data-section-axis="horizontal"][data-section-drop="after"]::after { right: 0; }
+:root button.section-reorder-handle {
+  position: absolute; right: 34px; top: 50%; transform: translateY(-50%);
+  width: 20px; height: 24px; padding: 0; border: 0; border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--muted); background: transparent; opacity: 0; cursor: grab;
+}
+.reorderable-section:hover > .section-reorder-handle,
+.reorderable-section:focus-within > .section-reorder-handle { opacity: 1; }
+:root button.section-reorder-handle:active { cursor: grabbing; }
+.board .group-header > .section-reorder-handle,
+.swimlane-column-headers .group-header > .section-reorder-handle { right: 58px; }
+.project-section-header { display: flex; align-items: center; }
+.project-section-header > .section-reorder-handle,
+.swimlane-row-label > .section-reorder-handle { right: 10px; }

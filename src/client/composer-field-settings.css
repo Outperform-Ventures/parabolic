@@ -1,0 +1,14 @@
+.menu.composer-settings-menu { width: 280px; padding: 6px; }
+.composer-field-settings-heading { padding: 7px 8px 2px; font-size: 13px; font-weight: 500; }
+.composer-field-settings > p { padding: 0 8px 7px; margin: 0; font-size: 11px; color: var(--muted); }
+.composer-field-setting { display: flex; align-items: center; min-width: 0; border-radius: 5px; }
+.composer-field-setting:hover { background: var(--hover); }
+:root .composer-field-setting > .section-reorder-handle { position: static; transform: none; opacity: 1; flex: 0 0 24px; height: 32px; }
+.composer-field-setting > [role="menuitemcheckbox"] { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; min-height: 32px; padding: 6px 8px 6px 2px; background: transparent; border: 0; border-radius: 4px; color: var(--text); text-align: left; font-size: 13px; }
+.composer-field-setting > [aria-checked="false"] { color: var(--muted); }
+.composer-field-setting > button > span { flex: 1; min-width: 0; }
+.composer-field-setting small { display: block; font-size: 10px; line-height: 13px; color: var(--muted); }
+.composer-field-setting svg { flex-shrink: 0; }
+.composer-settings-actions { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
+.composer-settings-actions > summary { padding: 7px 8px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.composer-settings-actions .issue-action-filter { width: 100%; }

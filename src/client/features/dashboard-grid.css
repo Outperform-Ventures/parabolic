@@ -17,6 +17,7 @@
   transition: box-shadow 120ms ease;
 }
 .feature-dashboard-widget > .feature-between {
+  position: relative;
   padding-left: 19px;
   min-height: 28px;
   gap: 8px;
@@ -32,7 +33,19 @@
 .feature-dashboard-widget .feature-widget-actions {
   flex: none;
   gap: 0;
+  position: absolute;
+  right: 0;
+  background: var(--panel);
+  border-radius: 4px;
+  opacity: 0;
+  pointer-events: none;
 }
+.feature-dashboard-widget:hover .feature-widget-actions,
+.feature-dashboard-widget:focus-within .feature-widget-actions{opacity:1;pointer-events:auto}
+.feature-dashboard-widget .dashboard-metric-body{display:flex;flex-direction:column;overflow:auto}
+.feature-dashboard-widget .dashboard-metric-body .feature-insight-metric{min-height:75px;flex:1;gap:4px}
+.feature-dashboard-widget .dashboard-metric-body .feature-insight-metric strong{font-size:44px;letter-spacing:-1px}
+.feature-dashboard-widget .dashboard-metric-body .feature-analysis-total{flex:none;margin-top:4px;font-size:11px}
 .feature-dashboard-widget-body {
   flex: 1;
   min-height: 0;
@@ -82,7 +95,7 @@
 .feature-widget-move:hover,
 .feature-widget-resize:hover {
   background: var(--hover);
-  color: var(--text);
+  color: var(--hover-text);
 }
 .feature-dashboard-layout.is-changing .feature-dashboard-widget {
   outline: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);

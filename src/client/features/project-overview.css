@@ -11,7 +11,7 @@
 .project-detail-header>.feature-button:hover{background:var(--panel);border:0}
 .project-detail-page>.feature-tabs{height:43px;padding:8px;gap:4px}
 .project-issue-view-tabs>a{background:transparent;border:0;border-radius:15px;padding:4px 11px;color:var(--f-muted);font-size:0.75rem;line-height:19px;white-space:nowrap}
-.project-issue-view-tabs>a:hover{color:var(--f-text);background:var(--f-panel)}
+.project-issue-view-tabs>a:hover{color: var(--hover-text);background:var(--f-panel)}
 .project-issue-view-tabs>a.active{color:var(--f-text);background:var(--f-hover)}
 
 /* Scale the overview within its available panel, including a collapsed sidebar.

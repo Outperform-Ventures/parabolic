@@ -12,7 +12,7 @@
 }
 .team-home-tabs > a:hover {
   background: var(--hover);
-  color: var(--text);
+  color: var(--hover-text);
 }
 .team-home-tabs > a.active {
   background: var(--selected);
@@ -109,7 +109,7 @@
   font-size: 0.8125rem;
 }
 .team-overview-sidebar nav a:hover {
-  color: var(--text);
+  color: var(--hover-text);
 }
 @media (max-width: 760px) {
   .team-overview-content {
@@ -253,7 +253,7 @@
   height: 30px;
 }
 .team-documents-table th button:hover {
-  color: var(--f-text);
+  color: var(--hover-text);
 }
 .team-documents-table th:last-child,
 .team-documents-table td:last-child {
@@ -278,7 +278,7 @@
   border-radius: 5px;
 }
 .team-document-collapse:hover {
-  color: var(--f-text);
+  color: var(--hover-text);
   background: var(--f-hover);
 }
 .team-documents-table tr[role="link"] {

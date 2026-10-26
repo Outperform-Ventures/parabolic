@@ -12,8 +12,9 @@ export type FilterPanelNavigation = {
 };
 
 /** Each level owns its query and focus. Portals prevent clipping by a parent's scroll area. */
-export function FilterMenuCascade({trigger,initialField,rootAlignRight=false,children}:{
+export function FilterMenuCascade({trigger,initialField,rootAlignRight=false,onOpen,children}:{
   trigger:React.ReactNode; initialField:string; rootAlignRight?:boolean;
+  onOpen?:()=>void;
   children:(navigation:FilterPanelNavigation)=>React.ReactNode;
 }) {
   const [panels,setPanels]=useState<Panel[]>([]);
@@ -48,18 +49,20 @@ export function FilterMenuCascade({trigger,initialField,rootAlignRight=false,chi
   },[panels.length]);
   const open=()=>{
     const anchor=triggerRef.current;
-    if(anchor)setPanels([{field:initialField,search:'',anchor}]);
+    if(anchor){onOpen?.();setPanels([{field:initialField,search:'',anchor}]);}
   };
   return <span className="dropdown filter-cascade-trigger" ref={triggerRef} onClick={()=>panels.length?close():open()} onKeyDown={e=>{
     if(!panels.length&&['ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();open();}
   }}>
     {React.isValidElement(trigger)?React.cloneElement(trigger as React.ReactElement<any>,{'aria-expanded':!!panels.length,'aria-haspopup':'menu'}):trigger}
     {panels.map((panel,index)=>createPortal(<CascadePanel key={index+':'+panel.field} panel={panel} index={index} rootAlignRight={rootAlignRight} register={element=>{elements.current[index]=element;}}
-      onPointerEnter={cancelHover}
       onPointerOver={e=>{
         const row=(e.target as HTMLElement).closest<HTMLElement>('.issue-filter-option');
-        if(!row||row.contains(e.relatedTarget as Node))return;
+        if(!row){cancelHover();return;}
+        if(row.contains(e.relatedTarget as Node))return;
         cancelHover();
+        // pointerover fires before pointerenter when entering a panel directly
+        // over a row. Do not cancel this row's new timer in pointerenter.
         const branch=row.dataset.filterBranch;
         // A short delay lets the pointer cross sibling rows on its way into a child.
         timer.current=setTimeout(()=>{
@@ -96,7 +99,6 @@ export function FilterMenuCascade({trigger,initialField,rootAlignRight=false,chi
 
 function CascadePanel({panel,index,rootAlignRight,register,children,...events}:{
   panel:Panel;index:number;rootAlignRight:boolean;register:(element:HTMLDivElement|null)=>void;children:React.ReactNode;
-  onPointerEnter:React.PointerEventHandler<HTMLDivElement>;
   onPointerLeave:React.PointerEventHandler<HTMLDivElement>;
   onPointerOver:React.PointerEventHandler<HTMLDivElement>;
   onKeyDown:React.KeyboardEventHandler<HTMLDivElement>;

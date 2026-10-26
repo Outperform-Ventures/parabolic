@@ -80,6 +80,8 @@
     --hover: lch(13.845 1.3 272);
     --selected: lch(16.706 0.979 272);
     --text: lch(100 0 272);
+    /* Hover is intentionally brighter than resting/selected text. */
+    --hover-text: #ffffff;
     --muted: lch(61.803 1.2 272);
     --subtle: lch(36.975 1.2 272);
     --border: #27272b;
@@ -115,6 +117,7 @@
     --hover: #efeff1;
     --selected: #e6e6e9;
     --text: #282830;
+    --hover-text: var(--text);
     --muted: #7b7b83;
     --subtle: #a3a3aa;
     --border: #e7e7ea;
@@ -239,7 +242,7 @@
     padding: 4px 0;
   }
   .text-button:hover {
-    color: var(--text);
+    color: var(--hover-text);
   }
   .text-button:disabled {
     opacity: 0.4;
@@ -314,7 +317,7 @@
     color: var(--muted);
   }
   .button.ghost:hover {
-    color: var(--text);
+    color: var(--hover-text);
     background: var(--hover);
   }
   .button:disabled {
@@ -340,6 +343,9 @@
   .icon-button.active {
     background: var(--hover);
     color: var(--text);
+  }
+  .icon-button:hover {
+    color: var(--hover-text);
   }
   .circle-button {
     border-radius: 50%;
@@ -591,11 +597,16 @@
     font-size: 0.75rem;
     font-weight: 500;
   }
-  .app-tab > span {
+  /* Only the title fills spare width. Avatars and status glyphs are spans too. */
+  .app-tab > .app-tab-label {
     flex: 1;
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .app-tab > :not(.app-tab-label) {
+    flex: none;
   }
   .app-tab .icon {
     color: var(--text-secondary);
@@ -683,7 +694,7 @@
   }
   .sidebar-link:hover {
     background: var(--panel);
-    color: var(--text);
+    color: var(--hover-text);
   }
   .sidebar-link.active {
     background: var(--hover);
@@ -709,6 +720,7 @@
     margin-bottom: 1px;
     height: 28px;
     min-height: 28px;
+    white-space: nowrap;
   }
   .sidebar-section-title .icon-button {
     width: 18px;
@@ -731,13 +743,17 @@
     height: 28px;
     text-align: left;
     color: var(--nav-muted);
-    padding: 0 0 0 9px;
+    padding: 0 24px 0 9px;
     border-radius: 8px;
     font-size: 0.8125rem;
     line-height: normal;
   }
   .team-heading strong {
     font-weight: 500;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .team-heading > .dropdown {
     position: absolute;
@@ -839,14 +855,28 @@
     min-height: 44px;
     border-bottom: 1px solid var(--frame-border);
     font-size: 0.8125rem;
+    min-width: 0;
+    white-space: nowrap;
   }
   .page-header h1 {
     font-size: 0.8125rem;
     font-weight: 500;
     line-height: 18px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .page-header > a {
     font-size: 0.8125rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .page-header > .icon-button,
+  .page-header > .button,
+  .page-header > .dropdown,
+  .page-header > svg {
+    flex-shrink: 0;
   }
   .page-header .icon-button {
     width: 24px;
@@ -864,6 +894,7 @@
     min-height: 43px;
     height: 43px;
     border-bottom: 0;
+    min-width: 0;
   }
   .page-tabs {
     display: flex;
@@ -872,6 +903,8 @@
     min-width: 0;
     font-size: 0.75rem;
     white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
   }
   .page-tabs > a,
   .page-tabs > button {
@@ -887,6 +920,7 @@
     font-size: 0.75rem;
     font-weight: 500;
     line-height: normal;
+    flex-shrink: 0;
   }
   .page-tabs > a.active,
   .page-tabs > button.active {
@@ -896,7 +930,7 @@
   .page-tabs > a:hover,
   .page-tabs > button:hover {
     background: var(--panel);
-    color: var(--text);
+    color: var(--hover-text);
   }
   .page-tabs > button[aria-label="Add view"] {
     padding: 4px;
@@ -1125,7 +1159,7 @@
   }
   .property-button:hover {
     background: var(--hover);
-    color: var(--text);
+    color: var(--hover-text);
   }
   .property-button .status-icon,
   .property-button .avatar {
@@ -1258,7 +1292,7 @@
     padding: 8px;
   }
   .board-create:hover {
-    color: var(--text);
+    color: var(--hover-text);
   }
   .view-details {
     width: 310px;
@@ -1368,6 +1402,7 @@
   }
   .menu-item > span:not(.priority-icon):not(.status-icon):not(.avatar) {
     flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -1400,7 +1435,8 @@
   .menu-separator {
     height: 1px;
     background: var(--border);
-    margin: 5px -6px;
+    /* Nested/edge-to-edge menu lists may have no horizontal padding. */
+    margin: 5px 0;
   }
   .menu-empty {
     padding: 18px 10px;
@@ -1410,7 +1446,8 @@
   }
   .menu-scroll {
     max-height: 300px;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
   .property-menu {
     width: 255px;
@@ -1668,7 +1705,8 @@
     font-size: 0.625rem;
   }
   .command-results {
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
     flex: 1;
     padding: 4px 6px;
   }
@@ -2015,7 +2053,8 @@
     left: 0;
     width: 240px;
     max-height: 300px;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
     z-index: 50;
   }
   .issue-description-footer {
@@ -2721,46 +2760,6 @@
   :root {
     --sidebar-width: 58px;
   }
-  .sidebar .workspace-name > strong,
-  .sidebar .workspace-name > .icon,
-  .sidebar-link > span,
-  .sidebar-section-title,
-  .team-heading strong,
-  .team-heading > .dropdown,
-  .team-heading > button > .icon:last-child,
-  .team-heading > button > .sidebar-disclosure,
-  .team-links,
-  .favorite-row,
-  .sidebar-footer > .sync-indicator {
-    display: none;
-  }
-  .workspace-switcher > .icon-button {
-    display: none;
-  }
-  .workspace-name {
-    padding-left: 10px;
-  }
-  .sidebar-link {
-    justify-content: center;
-    padding: 6px;
-  }
-  .sidebar-link > .icon {
-    width: 18px;
-    height: 18px;
-  }
-  .sidebar-team {
-    margin: 10px 0;
-  }
-  .team-heading > button {
-    justify-content: center;
-  }
-  .sidebar-footer {
-    justify-content: center;
-  }
-  .sidebar-footer > .spacer,
-  .sidebar-footer > .icon-button {
-    display: none;
-  }
   .main-panel {
     margin-right: 4px;
   }
@@ -2799,6 +2798,52 @@
   .modal-backdrop {
     padding: 10vh 12px 25px;
   }
+}
+/* Compact navigation follows the actual sidebar width, including custom sizes. */
+@container sidebar (max-width: 120px) {
+  .sidebar .workspace-name > strong,
+  .sidebar .workspace-name > .icon,
+  .sidebar-link > span,
+  .sidebar-section-title,
+  .team-heading strong,
+  .team-heading > .dropdown,
+  .team-heading > button > .icon:last-child,
+  .team-heading > button > .sidebar-disclosure,
+  .team-links,
+  .favorite-row,
+  .sidebar-footer > .sync-indicator {
+    display: none;
+  }
+  .workspace-switcher > .icon-button {
+    display: none;
+  }
+  .workspace-name {
+    padding-left: 10px;
+  }
+  .sidebar-link {
+    justify-content: center;
+    padding: 6px;
+  }
+  .sidebar-link > .icon {
+    width: 18px;
+    height: 18px;
+  }
+  .sidebar-team {
+    margin: 10px 0;
+  }
+  .team-heading > button {
+    justify-content: center;
+    padding-inline: 0;
+  }
+  .sidebar-footer {
+    justify-content: center;
+  }
+  .sidebar-footer > .spacer,
+  .sidebar-footer > .icon-button {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
   .composer-body {
     padding: 8px 18px 20px;
   }
@@ -2840,22 +2885,6 @@
   --panel: #fff;
   --bg: #fff;
   --border: #eeeef0;
-}
-:root[data-pointer="default"]
-  button:not(.project-milestone-grip):not(.timeline-milestone):not(
-    [data-resize-handle]
-  ),
-:root[data-pointer="default"] a,
-:root[data-pointer="default"] select {
-  cursor: default;
-}
-:root[data-pointer="pointer"]
-  button:not(:disabled):not(.project-milestone-grip):not(
-    .timeline-milestone
-  ):not([data-resize-handle]),
-:root[data-pointer="pointer"] a[href],
-:root[data-pointer="pointer"] select:not(:disabled) {
-  cursor: pointer;
 }
 :root[data-underline="hover"] .rich-content a:not(:hover) {
   text-decoration: none;
@@ -4171,7 +4200,7 @@ details[open] > summary > .editor-collapse-toggle svg {
   cursor: pointer;
 }
 .entity-reminder-banner > button:first-of-type:hover {
-  color: var(--text);
+  color: var(--hover-text);
 }
 .reminder-dialog {
   max-width: 450px;
@@ -4340,7 +4369,7 @@ details[open] > summary > .editor-collapse-toggle svg {
   font-size: 11px;
 }
 .support-files button:hover {
-  color: var(--text);
+  color: var(--hover-text);
 }
 
 /* Named preset color facts, evaluated from the public client on 2026-09-07. */
@@ -4457,6 +4486,7 @@ details[open] > summary > .editor-collapse-toggle svg {
   margin: 8px 0;
 }
 :root[data-theme="custom"] .sidebar {
+  --hover-text: var(--sidebar-hover-text);
   --accent: var(--sidebar-accent);
   --text: var(--sidebar-text);
   --hover: var(--sidebar-hover);
@@ -4507,12 +4537,18 @@ details[open] > summary > .editor-collapse-toggle svg {
 
 .issue-header-title {
   display: flex;
+  align-items: center;
   gap: 8px;
   min-width: 0;
-  max-width: 50%;
+  max-width: 100%;
   font-size: 13px;
+  white-space: nowrap;
 }
-.issue-header-title > span {
+.issue-header-identifier {
+  flex: none;
+}
+.issue-header-name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4520,6 +4556,7 @@ details[open] > summary > .editor-collapse-toggle svg {
 .issue-context-link {
   color: var(--muted);
   font-size: 13px;
+  max-width: 18%;
 }
 .issue-neighbor-controls {
   display: flex;
@@ -4527,6 +4564,8 @@ details[open] > summary > .editor-collapse-toggle svg {
   gap: 2px;
   color: var(--muted);
   font-size: 12px;
+  flex: none;
+  white-space: nowrap;
 }
 .issue-action-filter[data-compact-empty] {
   position: relative;

@@ -1,4 +1,5 @@
 import {projectPropertyIndex,withProjectProperties,usesProjectProperties,projectLabelConditionEntity} from '../shared/project-property-filter';
+import {customerAssignments,usesCustomerAssignments} from '../shared/customer-assignments';
 import {matchCustomerValue} from '../shared/customer-quick-filter';
 import {withIssueQuickFilter,usesIssueQuickFilter} from '../shared/issue-quick-filter';
 import {resolveCurrentUserFilter} from '../shared/current-user-filter';
@@ -147,6 +148,7 @@ export function matchesCondition(
   }
 }
 export function matchesFilter(entity:Entity,spec?:FilterSpec|Condition[]|Record<string,any>,labels?:Entity[],projects?:Entity[],cycles?:Entity[],clock?:RelativeDateClock,currentUserId?:string,issues?:Entity[],milestones?:Entity[]):boolean{
+ if(projects&&usesCustomerAssignments(spec))entity={...entity,...customerAssignments(entity,projects)};
  if(projects&&usesProjectProperties(spec))entity=withProjectProperties(entity,projectPropertyIndex(projects,labels,milestones));
  try{return matchesFilterInternal(usesIssueQuickFilter(spec)?withIssueQuickFilter(entity,issues):entity,resolveCurrentUserFilter(spec,currentUserId),labels,projects,cycles,clock)}catch(error){if(error instanceof UnsupportedStructuredFilter||error instanceof InvalidFilterGroup)return false;throw error}
 }

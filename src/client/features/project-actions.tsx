@@ -1,3 +1,4 @@
+import {CustomerAssignmentControl} from '../customer-assignment-picker';
 import {ProjectDependencyEditor} from './project-dependencies';
 import {DocumentForm} from './document-form';
 import {openReminder} from '../reminders';
@@ -18,6 +19,7 @@ export function ProjectActions({project,onEdit,onDeleted,onRemoveFromTimeline,on
  useLayoutEffect(()=>{document.querySelectorAll<HTMLElement>('#project-comments,.update-discussion').forEach(node=>node.hidden=!commentsVisible)},[commentsVisible,project.id]);
  const toggleComments=()=>{const visible=!commentsVisible;sessionStorage.setItem(commentsKey,String(visible));setCommentsVisible(visible)};
  const contextMenu=<>
+  <CustomerAssignmentControl entity={project} kind="projects" label="Customers…"/>
   <MenuItem icon="Box" shortcut="›" onClick={()=>command('edit-property','status')}>Status</MenuItem>
   <MenuItem icon="BarChart3" shortcut="›" onClick={()=>command('edit-property','priority')}>Priority</MenuItem>
   <MenuItem icon="User" shortcut="›" onClick={()=>command('edit-property','leadId')}>Project lead</MenuItem>

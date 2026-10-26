@@ -1,0 +1,132 @@
+/* Shared chrome should give space to controls and truncate labels, not wrap
+   inside fixed-height rows. Content editors still wrap normally. */
+.workspace-switcher > .dropdown {
+  flex: 1;
+  min-width: 0;
+}
+.workspace-switcher .workspace-name {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.workspace-switcher .workspace-name strong {
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+.main-panel .feature-header {
+  min-width: 0;
+  white-space: nowrap;
+}
+.main-panel .feature-header > a,
+.main-panel .feature-header > .feature-heading {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.main-panel .feature-header > button,
+.main-panel .feature-header > .dropdown,
+.main-panel .feature-header > .feature-menu-anchor {
+  flex-shrink: 0;
+}
+.main-panel .feature-tabs {
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: thin;
+}
+.main-panel .feature-tabs > a,
+.main-panel .feature-tabs > button {
+  flex-shrink: 0;
+}
+/* Settings tabs belong to the page's scroll container. Their old fixed height
+   was one pixel shorter than the buttons plus padding, creating a tiny second
+   scrollbar. Grow naturally and wrap so every tab remains reachable. */
+.main-panel .feature-settings-content > .feature-tabs {
+  height: auto;
+  min-height: 43px;
+  flex-wrap: wrap;
+  overflow: visible;
+  margin-bottom: 30px;
+}
+.project-overview-members-trigger:not(:has(.project-overview-member-avatars)) {
+  width: auto;
+  white-space: nowrap;
+}
+.issue-properties-panel > .issue-detail-project-cycle {
+  max-width: 100%;
+  min-width: 0;
+}
+.issue-properties-panel .property-button,
+.issue-properties-panel .property-button > span {
+  min-width: 0;
+}
+.issue-properties-panel .issue-property-open-link {
+  flex: none;
+}
+
+/* The available content panel matters more than the outer window: an expanded
+   navigation sidebar must not leave an unusably narrow issue editor. */
+.issue-detail-view {
+  container: issue-detail / inline-size;
+}
+@container issue-detail (max-width: 560px) {
+  .issue-detail-layout {
+    display: block;
+    overflow-y: auto;
+  }
+  .issue-detail-layout > .issue-content-scroll {
+    overflow: visible;
+  }
+  .issue-detail-layout .issue-article {
+    max-width: none;
+    padding: 24px 20px;
+  }
+  .issue-detail-layout > .issue-properties-panel {
+    display: flex;
+    width: auto;
+    padding: 20px;
+  }
+}
+
+.feature-settings-nav section > a {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.feature-settings-nav .settings-nav-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.feature-settings-main {
+  container: settings-content / inline-size;
+}
+.feature-settings-shell .feature-settings-main .feature-settings-card {
+  max-width: 100%;
+}
+@container settings-content (max-width: 600px) {
+  /* Fixed reference heights only work while the label and control fit beside
+     each other. Let every settings-card row grow when its controls wrap. */
+  .feature-settings-shell .feature-settings-main .feature-settings-card {
+    height: auto;
+  }
+  .feature-settings-shell .feature-settings-main .feature-settings-card .feature-settings-row:not(.members-table-row) {
+    height: auto;
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .feature-settings-shell .feature-settings-main .feature-settings-row > div:first-child {
+    flex: 1 1 180px;
+    min-width: 0;
+  }
+  .feature-settings-shell .feature-settings-main .feature-settings-row > .input,
+  .feature-settings-shell .feature-settings-main .feature-settings-row > select,
+  .feature-settings-shell .feature-settings-main .profile-email-control {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .feature-settings-main .profile-email-control {
+    overflow-wrap: anywhere;
+  }
+}

@@ -152,7 +152,7 @@
 .inbox-display input[role=switch]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .menu.inbox-filter-menu{width:208px;min-width:208px;padding:0;overflow:visible!important}
 .inbox-filter-popover{width:206px;padding:0}
-.inbox-filter-values-panel{position:absolute;left:calc(100% - 2px);width:311px;min-width:208px;padding:6px 0;max-height:420px;overflow:auto;z-index:2}
+.inbox-filter-values-panel{position:absolute;left:calc(100% - 2px);width:311px;min-width:208px;padding:6px 0;max-height:420px;overflow-y:auto;overflow-x:hidden;z-index:2}
 .inbox-filter-values-panel .menu-item{min-height:32px;height:auto;padding:6px 14px;font-size:13px;gap:8px}
 .inbox-filter-values-panel .menu-item small{margin-left:auto;color:var(--muted);font-size:11px;white-space:nowrap}
 .inbox-filter-values-panel .inbox-filter-unavailable{border-top:1px solid var(--border);margin-top:2px;width:100%}

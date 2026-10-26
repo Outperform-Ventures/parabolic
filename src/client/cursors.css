@@ -1,0 +1,45 @@
+/* Interactive affordances are on by default, including outside an authenticated
+   workspace. Keep the existing Preferences opt-out, but apply it consistently. */
+:root {
+  --interactive-cursor: pointer;
+}
+:root[data-pointer="default"] {
+  --interactive-cursor: default;
+}
+
+/* Semantic controls plus the app's selectable/navigable non-button surfaces.
+   Do not infer clickability from tabindex, draggable, or event-bubbling wrappers. */
+:root :is(
+  button, a[href], select, summary,
+  input:is([type="button"], [type="submit"], [type="reset"], [type="checkbox"], [type="radio"], [type="file"], [type="color"]),
+  [role="button"], [role="link"], [role="menuitem"], [role="menuitemcheckbox"],
+  [role="menuitemradio"], [role="option"], [role="tab"], [role="checkbox"], [role="switch"],
+  [data-clickable="true"],
+  .app-tab, .issue-row, .board-card, .archive-row, .sub-issue-row,
+  .global-search-result, .dropdown-trigger, .filter-cascade-trigger,
+  .feature-project-table tbody tr[tabindex], .feature-insight-table tbody tr[tabindex],
+  .feature-settings-row[data-label-id], .feature-menu-dismiss,
+  label:has(input:is([type="checkbox"], [type="radio"]):not(:disabled), select:not(:disabled))
+):not(:disabled):not([aria-disabled="true"]):not([aria-disabled="true"] *):not(:has(> :is(:disabled, [aria-disabled="true"]))):not(
+  .sidebar-reorder-handle, .section-reorder-handle, .project-milestone-grip, .feature-widget-move,
+  .feature-widget-resize, .feature-timeline-resize, .timeline-connection-handle,
+  [data-resize-handle]
+) {
+  cursor: var(--interactive-cursor);
+}
+
+/* Disabled controls and their trigger/label wrappers must not promise an action. */
+:root :is(button, input, select, textarea):disabled,
+:root [aria-disabled="true"],
+:root [aria-disabled="true"] :is(button, a, input, select, [role="button"]),
+:root :is(.dropdown-trigger, .filter-cascade-trigger, label):has(> :is(:disabled, [aria-disabled="true"])) {
+  cursor: default;
+}
+
+/* Clickable timeline bars/milestones show a pointer until dragging starts.
+   Dedicated drag/resize handles retain their more specific cursor rules. */
+:root :is(.feature-timeline-bar, .timeline-milestone):active,
+.board-scroll.board-panning,
+.board-scroll.board-panning * {
+  cursor: grabbing !important;
+}

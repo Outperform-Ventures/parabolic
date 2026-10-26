@@ -11,7 +11,7 @@ export function ProjectIssueViewTabs({project,active,onBuiltin}:{project:Row;act
  const open=(view:Row)=>navigate(`/project/${project.id}/view-${view.id}`);
  return <>
   <nav className="feature-tabs project-issue-view-tabs" aria-label="Page views">
-   {builtins.map(tab=><Link key={tab} className={active===tab?'active':''} aria-current={active===tab?'page':undefined} to={`/project/${project.id}/${tab==='Customers'?'requests':tab.toLowerCase()}`}>{tab}</Link>)}
+   {builtins.map(tab=><Link key={tab} className={active===tab?'active':''} aria-current={active===tab?'page':undefined} to={`/project/${project.id}/${tab==='Customers'?'requests':tab.toLowerCase()}`}>{tab==="Customers"?"Customer requests":tab}</Link>)}
    {views.map(view=><div className={'initiative-saved-tab '+(active==='view-'+view.id?'active':'')} key={view.id}><button onClick={()=>open(view)}><EntityIcon entity={view} fallback="Layers" size={12}/>{view.name}</button><Dropdown trigger={<button className="initiative-tab-menu" aria-label={'View actions: '+view.name}><Icon name="ChevronDown" size={11}/></button>}><MenuItem onClick={()=>setEditing(view)}>Edit view</MenuItem><MenuItem danger onClick={()=>setDeleting(view)}>Delete view</MenuItem></Dropdown></div>)}
    <button type="button" aria-label="Add new view" onClick={()=>setEditing(true)}><Icon name="Layers" size={14}/></button>
   </nav>

@@ -64,6 +64,8 @@ export function resolveShortcut(event: ShortcutEvent, context: ShortcutContext, 
   if (result) return event.repeat ? done(null) : done(result);
   if ((control || (!mac && mod)) && key === 'tab' && !alt) return done(action(shift ? 'previous-tab' : 'next-tab'));
   if (context.typing || context.modalOpen) return done(null);
+  if(bare&&key==='backspace')return event.repeat?done(null):done(action(shift?'forward':'back'));
+  if(plain&&['browserback','browserforward'].includes(key))return event.repeat?done(null):done(action(key==='browserback'?'back':'forward'));
   if(!event.repeat&&mod&&!control&&shift&&!alt&&key==='i'&&context.scope==='list'&&entity==='issue')return done(action('toggle-insights'));
   if(plain&&!event.repeat&&context.triageIssueId){const commands:Record<string,string>={'1':'triage-accept','2':'triage-duplicate','3':'triage-decline',h:'triage-snooze'};if(commands[key])return done(action(commands[key],{value:context.triageIssueId}));}
   if(!event.repeat&&key==='r'&&!shift&&((mac&&control&&!mod&&!alt)||(!mac&&mod&&alt)) )return done(action('new-customer-request'));
@@ -187,10 +189,10 @@ export function resolveShortcut(event: ShortcutEvent, context: ShortcutContext, 
     }
     if (context.scope === 'inbox') {
       if(plain&&['arrowup','arrowdown','j','k'].includes(key))result=action('focus-item',{value:['arrowup','k'].includes(key)?'up':'down'});
-      if(plain&&key==='backspace')result=action('delete-notification');
+      if(plain&&key==='delete')result=action('delete-notification');
       if (plain && key === 'u') result = action('toggle-read');
       if (plain && key === 'h') result = action('snooze-notification');
-      if (shift && key === 'backspace') result = action('delete-read-notifications');
+      if (shift && key === 'delete') result = action('delete-read-notifications');
     }
     if (context.scope === 'timeline') {
       const zoom: Record<string, string> = { '-': 'out', '=': 'in', y: 'year', q: 'quarter', m: 'month', w: 'week' };

@@ -1,4 +1,8 @@
 import {CustomerRequestDirection} from '../customer-request-direction';
+import {customerAssignments} from '../../shared/customer-assignments';
+import {IssueList} from '../issues';
+import {ProjectCollection} from './project-list';
+import {ProjectForm} from './projects';
 import {EntityIcon} from './entity-icon';
 import {NativeSettingsIcon} from '../components/settings-icons';
 import {CustomerChoiceSelect} from '../customer-status-select';
@@ -37,7 +41,6 @@ import {
   Person,
   SearchBox,
   Status,
-  Tabs,
   date,
   live,
   optionList,
@@ -165,6 +168,7 @@ export function CustomersPage() {
         );
       return values;
     }, [data.requests]);
+  const workCounts = useMemo(()=>{const counts=new Map<string,{issues:number;projects:number}>();for(const kind of ["issues","projects"] as const)for(const entity of live(data[kind]))for(const id of customerAssignments(entity,kind==="issues"?data.projects:[],data.customers).effectiveCustomerIds){const count=counts.get(id)||{issues:0,projects:0};count[kind]++;counts.set(id,count)}return counts},[data.issues,data.projects,data.customers]);
   const customers = live(data.customers)
     .filter(
       (c) =>
@@ -175,7 +179,7 @@ export function CustomersPage() {
         (!status || c.status === status),
     )
     .sort((a, b) => {
-      const value = sort === "requests"
+      const value = sort === "issues" || sort === "projects" ? (workCounts.get(a.id)?.[sort]??0)-(workCounts.get(b.id)?.[sort]??0) : sort === "requests"
         ? (counts.get(a.id) ?? 0) - (counts.get(b.id) ?? 0)
         : ["revenue", "size"].includes(sort)
           ? Number(a[sort] ?? 0) - Number(b[sort] ?? 0)
@@ -200,7 +204,7 @@ export function CustomersPage() {
     maximumFractionDigits: 1,
   }).format(Number(value));
   return (
-    <section className="feature-page">
+    <section className="feature-page customer-directory-page">
       <header className="feature-header customer-directory-header">
         <h2 className="feature-heading">Customers</h2>
         <div className="feature-header-actions"><AddButton onClick={() => setAdding(true)}>New customer</AddButton></div>
@@ -216,22 +220,22 @@ export function CustomersPage() {
         </Dropdown>
         <Dropdown align="right" trigger={<button type="button" className="feature-icon-button" aria-label="Display options"><Icon name="SlidersHorizontal" size={14}/></button>}>
           <div className="customer-directory-options" data-keep-open>
-            <label>Ordering<select aria-label="Order customers" value={sort} onChange={e => { setSort(e.target.value); setDescending(false); }}><option value="name">Name</option><option value="requests">Requests</option><option value="revenue">Annual revenue</option><option value="size">Size</option><option value="status">Status</option><option value="tier">Tier</option></select></label>
+            <label>Ordering<select aria-label="Order customers" value={sort} onChange={e => { setSort(e.target.value); setDescending(false); }}><option value="name">Name</option><option value="projects">Projects</option><option value="issues">Issues</option><option value="requests">Requests</option><option value="revenue">Annual revenue</option><option value="size">Size</option><option value="status">Status</option><option value="tier">Tier</option></select></label>
           </div>
         </Dropdown>
       </div>
       {customers.length ? (
-        <div className="customer-directory-table">
+        <div className="customer-directory-table customer-work-directory">
           <div className="customer-directory-head">
-            {[["name","Name"],["requests","Requests"],["revenue","Annual revenue"],["size","Size"],["status","Status"],["tier","Tier"]].map(([value,label]) => <button type="button" key={value} onClick={() => order(value)} aria-label={`Order by ${label}`} aria-pressed={sort === value}>{label}</button>)}
+            {[["name","Name"],["projects","Projects"],["issues","Issues"],["requests","Requests"],["revenue","Annual revenue"],["size","Size"],["status","Status"],["tier","Tier"]].map(([value,label]) => <button type="button" key={value} onClick={() => order(value)} aria-label={`Order by ${label}`} aria-pressed={sort === value}>{label}</button>)}
             <span>Owner</span>
           </div>
           {customers.map(c => {
             const owner = data.users.find((user: Row) => user.id === c.ownerId)?.name || "Unassigned";
-            const accessible = [c.name, c.name, counts.get(c.id) ?? 0, currency(c.revenue), c.size || "", c.status || "", c.tier || "", owner].filter(value => value !== "").join(" ");
+            const accessible = [c.name, `${workCounts.get(c.id)?.projects??0} projects`, `${workCounts.get(c.id)?.issues??0} issues`, `${counts.get(c.id)??0} requests`, currency(c.revenue), c.size || "", c.status || "", c.tier || "", owner].filter(value => value !== "").join(" ");
             return <Link className="customer-directory-row" aria-label={accessible} to={`/customer/${c.id}`} key={c.id}>
               <span className="feature-name"><CompanyLogo customer={c}/>{c.name}</span>
-              <span>{counts.get(c.id) ?? 0}</span>
+              <span>{workCounts.get(c.id)?.projects??0}</span><span>{workCounts.get(c.id)?.issues??0}</span><span>{counts.get(c.id) ?? 0}</span>
               <span>{compactCurrency(c.revenue)}</span>
               <span>{c.size || "—"}</span>
               <span>{c.status || "—"}</span>
@@ -246,7 +250,7 @@ export function CustomersPage() {
           title={
             query || tier || status ? "No matching customers" : "Customers"
           }
-          description="Connect customer feedback to the work it inspires."
+          description="Organize customers, their projects, issues, and feedback in one place."
           action={
             <AddButton onClick={() => setAdding(true)}>New customer</AddButton>
           }
@@ -259,6 +263,19 @@ export function CustomersPage() {
   );
 }
 
+export function CustomerIssuesPage() {
+  const {customerId}=useParams(),store=useAppStore(),{data}=store;
+  const customer=live(data.customers).find(item=>item.id===customerId);
+  if(!customer)return <Blank title={store.initialSyncing?'Loading customer…':'Customer not found'}/>;
+  const issues=live(data.issues).filter(issue=>customerAssignments(issue,data.projects,data.customers).effectiveCustomerIds.includes(customer.id));
+  return <section className="feature-page customer-work-page customer-issues-page">
+    <Header title="Issues" breadcrumb={{title:customer.name,to:`/customer/${customer.id}`}}/>
+    <div className="customer-detail customer-work-view">
+      <IssueList key={customer.id} embedded customerId={customer.id} issueIds={issues.map(issue=>issue.id)}/>
+    </div>
+  </section>;
+}
+
 export function CustomerPage() {
   const { customerId } = useParams(),
     store = useActions(),
@@ -268,7 +285,8 @@ export function CustomerPage() {
     [request, setRequest] = useState<Row | boolean>(false),
     [requestTargetIssueId, setRequestTargetIssueId] = useState<string | null>(null),
     [customerMenu, setCustomerMenu] = useState(false),
-    [tab, setTab] = useState("Requests"),
+    [tab, setTab] = useState<'Overview'|'Projects'|'Requests'>("Overview"),
+    [newProject,setNewProject] = useState(false),
     [requestViewOverride, setRequestViewOverride] = useState<Record<string, any>>({});
   const customer = live(data.customers).find((c) => c.id === customerId);
   if (!customer)
@@ -282,10 +300,10 @@ export function CustomerPage() {
   const requests = live(data.requests).filter(
       (r) => r.customerId === customer.id,
     ),
-    issueIds = new Set(requests.map((r) => r.issueId)),
-    projectIds = new Set(requests.flatMap((r) => customerRequestProjectIds(r,data.issues)));
+    issueIds = new Set(data.issues.filter(i=>customerAssignments(i,data.projects,data.customers).effectiveCustomerIds.includes(customer.id)).map(i=>i.id)),
+    projectIds = new Set(data.projects.filter(p=>customerAssignments(p,[],data.customers).effectiveCustomerIds.includes(customer.id)).map(p=>p.id));
   const issues = live(data.issues).filter(
-      (i) => issueIds.has(i.id) || i.customerId === customer.id,
+      (i) => issueIds.has(i.id),
     ),
     projects = live(data.projects).filter((p) => projectIds.has(p.id));
   const config = customerSettings(data),
@@ -361,7 +379,7 @@ export function CustomerPage() {
       : [["", ordered] as const];
   const annualRevenue=customer.revenue==null||customer.revenue===''?'—':new Intl.NumberFormat(undefined,{style:'currency',currency:config.revenueUnit,notation:'compact',minimumFractionDigits:1,maximumFractionDigits:1}).format(Number(customer.revenue));
   return (
-    <section className="feature-page">
+    <section className={"feature-page "+(tab==='Projects'?"customer-work-page":"")}>
       <Header
         title={customer.name}
         icon={<Building2 size={16} />}
@@ -407,7 +425,7 @@ export function CustomerPage() {
           {subscription ? <BellOff size={15} /> : <Bell size={15} />}
         </Action>
       </Header>
-      <div className="feature-readable customer-detail">
+      <div className={'customer-detail '+(tab==='Projects'?'customer-work-view':'feature-readable')}>
         <div className="customer-detail-summary">
           <CompanyLogo customer={customer} large />
           <div className="customer-detail-identity"><h1>{customer.name}</h1><span>{customer.domain || "No domain"}</span></div>
@@ -419,12 +437,13 @@ export function CustomerPage() {
           <div><span>Size</span><strong>{customer.size??'—'}</strong></div>
           <div><span>Owner</span><button onClick={()=>setEdit(true)}><Person id={customer.ownerId}/></button></div>
         </div>
-        <Tabs
-          items={["Requests", "Issues", "Projects"]}
-          active={tab}
-          onChange={setTab}
-        />
-        {tab === "Requests" ? (
+        <div className="customer-work-summary" role="group" aria-label="Customer sections">
+          <button type="button" className="customer-summary-card" aria-label="Projects" aria-description={`${projects.length} projects`} aria-pressed={tab==='Projects'} onClick={()=>setTab(tab==='Projects'?'Overview':'Projects')}><strong>{projects.length}</strong>Projects</button>
+          <button type="button" className="customer-summary-card" aria-label="Issues" aria-description={`${issues.length} issues`} onClick={()=>nav(`/customer/${customer.id}/issues`)}><strong>{issues.length}</strong>Issues</button>
+          <button type="button" className="customer-summary-card" aria-label="Requests" aria-description={`${requests.length} requests`} aria-pressed={tab==='Requests'} onClick={()=>setTab(tab==='Requests'?'Overview':'Requests')}><strong>{requests.length}</strong>Requests</button>
+          <p className="muted">Projects and issues are work associated with this customer. Requests are their feedback, tracked separately.</p>
+        </div>
+        {tab === "Overview" ? null : tab === "Requests" ? (
           <>
             <div className="customer-detail-request-heading">
               <h2>Requests <span>{requests.length}</span></h2>
@@ -466,27 +485,12 @@ export function CustomerPage() {
               />
             )}
           </>
-        ) : tab === "Issues" ? (
-          <IssueLinks issues={issues} />
         ) : (
-          <div className="feature-issue-list">
-            {projects.map((p) => (
-              <Link key={p.id} to={`/project/${p.id}`}>
-                <Status
-                  value={
-                    projectStatuses(data).find((s) => s.id === p.status)
-                      ?.name ?? p.status
-                  }
-                />
-                <span className="feature-issue-title">{p.name}</span>
-                <Person id={p.leadId} />
-                <ChevronRight size={14} />
-              </Link>
-            ))}
-            {!projects.length && <Blank title="No linked projects" />}
-          </div>
+          <><div className="customer-work-actions"><AddButton onClick={()=>setNewProject(true)}>New project</AddButton></div><ProjectCollection projects={projects} storageKey={'customer:'+customer.id}/></>
         )}
       </div>
+
+      {newProject&&<ProjectForm initial={{directCustomerIds:[customer.id]}} onClose={()=>setNewProject(false)}/>}
       {edit && (
         <CustomerEditor customer={customer} onClose={()=>setEdit(false)}/>
       )}{" "}

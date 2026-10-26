@@ -1,0 +1,55 @@
+.issue-column-layout { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0; }
+.issue-column-toolbar { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px 16px; flex: none; padding: 8px 16px; border-bottom: 1px solid var(--border); max-height: min(35vh, 260px); overflow-y: auto; overflow-x: hidden; }
+.issue-column-layout > .issue-view-content { min-width: 0; }
+.issue-column-toolbar-actions { display: flex; align-items: flex-start; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-left: auto; max-width: 100%; }
+.issue-column-handles { display: flex; flex-wrap: wrap; gap: 8px; }
+.issue-column-handle { display: flex; flex: 1; align-items: center; gap: 4px; padding: 0; min-width: 0; max-width: 100%; color: var(--muted); font-size: 14px; cursor: grab !important; position: relative; }
+.issue-column-handle > .icon { width: 10px; flex: none; color: var(--subtle); }
+.issue-column-handle > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.issue-column-handle:active { cursor: grabbing !important; }
+.issue-column-handle { touch-action: none; user-select: none; -webkit-user-drag: none; }
+.issue-column-handle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.issue-column-handle[data-dragging="true"] { opacity: .45; }
+.issue-column-chip[data-drop-edge]::after { content: ''; position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); pointer-events: none; }
+.issue-column-chip[data-drop-edge="before"]::after { left: -5px; }
+.issue-column-chip[data-drop-edge="after"]::after { right: -5px; }
+.column-order-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.issue-column-chip { position: relative; display: flex; min-width: 0; height: 30px; }
+.issue-column-resizer { position: absolute; z-index: 2; right: -5px; top: 0; width: 10px; height: 100%; cursor: col-resize !important; touch-action: none; user-select: none; }
+.issue-column-resizer::after { content: ''; position: absolute; left: 4px; top: 0; bottom: 0; width: 1px; background: var(--border); }
+.issue-column-resizer:hover::after, .issue-column-resizer:focus-visible::after { width: 2px; background: var(--accent); }
+.issue-column-resizer:focus-visible { outline: none; }
+.issue-column-layout[data-column-resizing="true"], .issue-column-layout[data-column-resizing="true"] * { cursor: col-resize !important; user-select: none !important; }
+.issue-column-chip .issue-column-handle { border: 0; background: transparent; }
+.issue-column-visibility { flex: none; display: flex; align-items: center; justify-content: center; width: 20px; color: var(--muted); opacity: 0; }
+.issue-column-chip:hover .issue-column-visibility, .issue-column-chip:focus-within .issue-column-visibility { opacity: 1; }
+.issue-column-visibility:hover { background: var(--hover); }
+.issue-column-visibility:focus-visible, .issue-column-show:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.issue-columns-hidden { flex: 1; min-width: 140px; }
+.issue-columns-hidden summary { width: fit-content; padding-block: 5px; color: var(--muted); font-size: 12px; cursor: pointer; }
+.issue-columns-hidden[open] summary { margin-bottom: 10px; }
+.issue-column-show { display: flex; align-items: center; gap: 6px; max-width: 100%; padding: 6px 9px; border: 1px dashed var(--border); border-radius: 6px; color: var(--muted); font-size: 12px; }
+.issue-column-show > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.issue-columns-aligned .virtual-issue-list, .issue-column-empty-table { width: max(100%, var(--issue-column-min-width)); }
+/* Both header and body share these exact tracks, gaps and insets. The list is
+   the only horizontal scroll surface; neither can drift from the other. */
+.issue-columns-aligned .issue-column-headers,
+.issue-columns-aligned .virtual-issue-list .issue-row {
+  display: grid; grid-template-columns: var(--issue-column-tracks); gap: 8px;
+  align-items: center; padding: 0 26px 0 16px; box-sizing: border-box;
+}
+.issue-column-headers { position: sticky; top: 0; height: 40px; z-index: 6; background: var(--panel); border-bottom: 1px solid var(--border); }
+.issue-column-cell { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; height: 100%; overflow: hidden; }
+.issue-column-cell > * { min-width: 0; max-width: 100%; }
+.issue-columns-aligned .issue-column-cell .issue-row-title { min-width: 0; margin-left: 0; padding-left: var(--issue-tree-indent, 0px); }
+.issue-columns-aligned .issue-column-cell .issue-identifier { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.issue-columns-aligned .issue-column-cell .issue-row-date,
+.issue-columns-aligned .issue-column-cell [data-activity-date] { width: auto; flex: initial; text-align: left; }
+.issue-column-cell .issue-project-badge { min-width: 0; flex: 0 1 auto; }
+.issue-column-save { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+.issue-column-save > span { margin-right: auto; }
+.issue-column-save button { padding: 5px 9px; border-radius: 5px; font-size: 12px; white-space: nowrap; }
+.issue-column-save button:disabled { opacity: .5; cursor: default !important; }
+.issue-column-save .column-save-primary { background: var(--accent); color: white; }
+.issue-column-save-bar { flex: none; margin: 0 16px 8px; padding: 8px 10px; background: var(--hover); border-radius: 6px; }
+.issue-column-save [role="alert"] { flex-basis: 100%; margin: 2px 0; color: var(--danger, #ef7676); }

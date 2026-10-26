@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { tooltipContent, tooltipSelector } from './tooltip-content';
 const shortcuts: Record<string, string> = {
   "Change priority": "P",
   "Change status": "S",
@@ -51,23 +52,19 @@ export function Tooltips() {
       setTip(null);
     };
     const over = (e: PointerEvent) => {
-      const next = (e.target as HTMLElement).closest<HTMLElement>(
-        "[data-tooltip],button[aria-label],a[aria-label]",
-      );
+      const candidate = (e.target as Element).closest<HTMLElement>(tooltipSelector);
+      const next = candidate?.closest<HTMLElement>('[data-tooltip]') || candidate;
       if (next === target) return;
       target = next;
       cancel();
-      if (!target || target.hasAttribute("title")) return;
+      if (!target) return;
       timer = setTimeout(() => {
-        if (
-          !target?.isConnected ||
-          target.getAttribute("aria-expanded") === "true"
-        )
-          return;
+        if (!target?.isConnected) return;
+        const content = tooltipContent(target);
+        if (!content) return;
         const rect = target.getBoundingClientRect();
         setTip({
-          label: target.getAttribute("data-tooltip") || target.getAttribute("data-tooltip-label") || target.getAttribute("aria-label")!,
-          description: target.hasAttribute('data-tooltip'),
+          ...content,
           variant: target.dataset.tooltipVariant,
           anchor: target.dataset.tooltipVariant==='group-summary'?{right:rect.right,top:rect.top,bottom:rect.bottom}:undefined,
           left: Math.max(
@@ -80,7 +77,7 @@ export function Tooltips() {
       }, performance.now()<warmUntil.current?80:550);
     };
     const leave = (event: PointerEvent) => {
-      if (!event.relatedTarget) {
+      if (!(event.relatedTarget instanceof Node) || !target?.contains(event.relatedTarget)) {
         target = null;
         cancel();
       }

@@ -116,7 +116,7 @@
   grid-template-columns: repeat(8, 1fr);
   gap: 3px;
   max-height: 235px;
-  overflow-y: auto;
+  overflow-y:auto;overflow-x:hidden;
   padding: 2px;
 }
 .entity-icon-grid button {
@@ -172,6 +172,7 @@
 .entity-icon-menu {
   max-height: calc(100vh - 16px);
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: var(--shadow);
   border-color: var(--popover-border, var(--border));
 }
@@ -269,7 +270,7 @@
 }
 .entity-emoji-picker nav button:hover {
   background: var(--hover);
-  color: var(--text);
+  color: var(--hover-text);
 }
 .entity-emoji-picker .entity-icon-search select {
   width: 36px;

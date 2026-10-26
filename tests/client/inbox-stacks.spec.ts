@@ -330,7 +330,7 @@ test("Deleting an Inbox stack removes hidden members, selects the next row and U
       .poll(() => fixture.flags(ids, "readAt"))
       .toEqual(ids.map(() => true));
     await targetRow.focus();
-    await page.keyboard.press("Backspace");
+    await page.keyboard.press("Delete");
     await page
       .getByRole("button", { name: "Delete notifications", exact: true })
       .click();

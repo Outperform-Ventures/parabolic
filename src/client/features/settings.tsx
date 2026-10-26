@@ -24,6 +24,7 @@ import {memberJoinedLabel} from '../member-joined';
 import {LabelBulk} from './label-bulk';
 import {LabelInline} from './label-inline';
 import './settings-visual.css';
+import './settings-responsive.css';
 import {WorkflowStatuses} from './workflow-statuses';
 import {ApplicationForm} from './application-form';
 import {CycleSettings} from './cycle-settings';
@@ -163,7 +164,7 @@ export function SettingsPage() {
                   to={`/settings/${id}`}
                 >
                   <NativeSettingsIcon name={String(label)} fallback={<Icon size={15} />}/>
-                  {String(label)}
+                  <span className="settings-nav-label" data-tooltip-label={String(label)}>{String(label)}</span>
                 </Link>
               ))}
           </section>
@@ -179,7 +180,7 @@ export function SettingsPage() {
                 key={t.id}
               >
                 <EntityIcon entity={t} size={14} fallback="Layers"/>
-                {t.name}
+                <span className="settings-nav-label" data-tooltip-label={t.name}>{t.name}</span>
               </Link>
             ))}
           {!guest&&<Link to="/settings/teams?new=1">Create a team</Link>}
@@ -548,7 +549,7 @@ function Preferences() {
         >
           <Toggle
             label="Use pointer cursors"
-            value={p.pointerCursor === true}
+            value={p.pointerCursor !== false}
             onChange={(v) => patch("pointerCursor", v)}
           />
         </SettingRow>
@@ -704,7 +705,7 @@ function FeatureSettings({kind}:{kind:'initiatives'|'documents'}){
  const {data,user,update,act}=useActions(),navigate=useNavigate(),workspace=data.workspaces.find(w=>w.id===data.workspaceId),admin=data.memberships.some(m=>!m.deletedAt&&!m.teamId&&m.userId===user?.id&&['owner','admin'].includes(m.role));
  if(kind==='initiatives')return <div className="initiative-settings-page"><SettingTitle title="Initiatives" description={<>Initiatives group multiple projects that contribute toward the same strategic effort. Use initiatives to plan and coordinate larger streams of work and monitor their progress at scale. <a href="https://parabolic.app/docs/initiatives" target="_blank" rel="noreferrer">Docs ↗</a></>}/>{workspace&&<div className="feature-settings-card initiative-enable-card"><SettingRow title="Enable Initiatives" description="Visible to all non-guest workspace members"><Toggle label="Enable initiatives" disabled={!admin} value={workspace.initiativesEnabled!==false} onChange={value=>act(()=>update('workspaces',workspace.id,{initiativesEnabled:value}))}/></SettingRow></div>}<UpdateSettings kind="initiative" embedded/><SettingSection title="Labels"><SettingRow icon={<Tag size={15}/>} title="Initiative labels" description="Manage the labels that can be applied to initiatives in your workspace"><span className="initiative-label-action"><span>{data.labels.filter(label=>!label.deletedAt&&label.entityType==='initiatives').length} labels</span><Link aria-label="Manage initiative labels" to="/settings/initiative-labels">›</Link></span></SettingRow></SettingSection></div>;
  const documentTemplates=live(data.templates).filter(template=>template.type==='document');
- return <div className="document-settings-page"><SettingTitle title="Documents"/><SettingSection title="Templates" description={<>These templates are available when creating documents for any team in the workspace. To create<br/> templates that only apply to specific teams, add them as team templates. <a href="https://parabolic.app/docs/documents" target="_blank" rel="noreferrer">Docs ↗</a></>}>
+ return <div className="document-settings-page"><SettingTitle title="Documents"/><SettingSection title="Templates" description={<>These templates are available when creating documents for any team in the workspace. To create templates that only apply to specific teams, add them as team templates. <a href="https://parabolic.app/docs/documents" target="_blank" rel="noreferrer">Docs ↗</a></>}>
    {!documentTemplates.length?<div className="feature-settings-row document-template-empty"><h3>No document templates</h3><Button aria-label="Create new document template" onClick={()=>navigate('/settings/document-templates?new=document&return=documents')}><Plus size={14}/>New template</Button></div>:<>{documentTemplates.map(template=><div className="feature-settings-row document-template-row" key={template.id}><FileText size={15}/><div><strong>{template.name}</strong><p>{data.teams.find(team=>team.id===template.teamId)?.name||'Workspace'}</p></div><Link className="button" to={`/settings/document-templates?template=${template.id}&return=documents`}>Edit</Link><EntityMenu kind="templates" item={template}/></div>)}<div className="feature-settings-row document-template-add"><span/><Button aria-label="Create new document template" onClick={()=>navigate('/settings/document-templates?new=document&return=documents')}><Plus size={14}/>New template</Button></div></>}
  </SettingSection></div>;
 }
@@ -1440,14 +1441,11 @@ function Labels({entityType='issues',teamId}:{entityType?:string;teamId?:string}
   );
 }
 
-function Workflows({ teamId }: { teamId?: string }) {
-  const { data } = useActions();
-  const [team, setTeam] = useState(teamId || data.teams[0]?.id || "");
+function Workflows({ teamId }: { teamId: string }) {
   return <>
-    <div className="feature-setting-toolbar"><PreferenceSelect label="Team" value={team} values={optionList(data.teams,"Select team")} onChange={setTeam}/></div>
-    <WorkflowStatuses key={team} teamId={team}/>
-    <WorkflowAutomationSettings teamId={team}/>
-    <RoutingRules teamId={team}/>
+    <WorkflowStatuses key={teamId} teamId={teamId}/>
+    <WorkflowAutomationSettings teamId={teamId}/>
+    <RoutingRules teamId={teamId}/>
   </>;
 }
 function RoutingRules({teamId}:{teamId:string}){return <TriageRules teamId={teamId}/>}

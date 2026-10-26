@@ -24,7 +24,8 @@ test('workspace filters merge shared statuses and combine multiple fields',async
   await expect(statusMenu.getByRole('menuitem',{name:'Todo',exact:true})).toHaveCount(1);
   await statusMenu.getByRole('menuitem',{name:'Backlog',exact:true}).click();
   await expect(page.locator('[data-testid=issue-row]')).toHaveCount(3);
-  await trigger.click();await page.getByRole('menuitem',{name:'Priority',exact:true}).click();await page.getByRole('menuitem',{name:'High',exact:true}).click();
+  await expect(statusMenu.getByRole('menuitem',{name:'Backlog',exact:true})).toHaveAttribute('aria-pressed','true');
+  await page.getByRole('menuitem',{name:'Priority',exact:true}).click();await page.getByRole('menuitem',{name:'High',exact:true}).click();
   await expect(page.locator('.issue-filter-chip')).toHaveCount(2);
   await expect(page.locator('[data-testid=issue-row]')).toHaveCount(2);
   await expect(page.locator('.issue-filter-chips')).toContainText('StatusisBacklog');

@@ -20,6 +20,7 @@ import {
 import { NativeSidebarDisclosure } from "./components/lower-sidebar-icons";
 import { draftKey, readDrafts, subscribeDrafts, draftSnapshot } from "./drafts";
 import "./sidebar-navigation.css";
+import { SidebarShortcut, sidebarNavigationShortcuts } from './sidebar-shortcuts';
 
 type Entry = {
   label: string;
@@ -47,6 +48,7 @@ export const sidebarEntries: Entry[] = [
   { label: "Projects", path: "/projects", icon: "Box" },
   { label: "Teams", path: "/teams", icon: "Users" },
   { label: "Views", path: "/views", icon: "Layers" },
+  { label: "Dashboards", path: "/dashboards", icon: "LayoutDashboard", defaultVisibility: "always" },
   {
     label: "Members",
     path: "/members",
@@ -57,7 +59,7 @@ export const sidebarEntries: Entry[] = [
     label: "Customers",
     path: "/customers",
     icon: "Building2",
-    defaultVisibility: "hidden",
+    defaultVisibility: "always",
   },
 ];
 export function SidebarNavigation({
@@ -159,6 +161,7 @@ export function SidebarNavigation({
       key={e.path}
       to={remembered.destination(e.path)}
       aria-label={e.label}
+      aria-description={sidebarNavigationShortcuts[e.path] ? `Shortcut: G then ${sidebarNavigationShortcuts[e.path]}` : undefined}
       className="sidebar-link"
       data-sidebar-path={e.path}
       draggable
@@ -187,7 +190,7 @@ export function SidebarNavigation({
       }}
     >
       {glyph(e)}
-      <span>{e.label}</span>
+      <span className="sidebar-label">{e.label}</span>
       {counts[e.path] > 0 && (
         <span
           className={`sidebar-count ${prefs.badgeStyle === "dot" ? "sidebar-badge-dot" : ""}`}
@@ -196,6 +199,7 @@ export function SidebarNavigation({
           {prefs.badgeStyle === "dot" ? "" : counts[e.path]}
         </span>
       )}
+      <SidebarShortcut path={e.path} />
     </NavLink>
   );
   return (

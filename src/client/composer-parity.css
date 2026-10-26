@@ -6,14 +6,13 @@
 .issue-composer:not(.expanded) .issue-title-input{height:29px;font-size:18px;line-height:24px;font-weight:500;padding-top:3px;letter-spacing:normal}
 .issue-composer:not(.expanded) .composer-body .rich-editor{margin-top:6px;min-height:76px}
 .issue-composer:not(.expanded) .composer-body .rich-content{min-height:76px;font-size:15px;line-height:24px}
-.issue-composer .composer-suggestions{display:flex;align-items:center;gap:6px;min-width:0;margin:2px -2px 8px;overflow:hidden}
-.issue-composer .composer-suggestions button{height:24px;display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;border:0;border-radius:9999px;padding:3px 8px;background:var(--hover);color:var(--muted);font-size:12px;line-height:16px;white-space:nowrap;max-width:210px;overflow:hidden;text-overflow:ellipsis}
-.issue-composer .composer-suggestions button:hover,.issue-composer .composer-suggestions button:focus-visible{background:var(--selected);color:var(--text)}
-.issue-composer .composer-suggestions-label{background:transparent!important;padding-left:2px!important}
-.issue-composer .composer-suggestion .avatar{flex:0 0 auto}
 .issue-composer:not(.expanded) .composer-properties{margin:6px -6px 0;gap:6px}
 .issue-composer .composer-properties .property-button{height:24px;min-height:24px;padding:4px 7px;border:1px solid transparent;border-radius:9999px;background:var(--hover);font-size:12px;font-weight:500;line-height:12px;gap:4px}
 .issue-composer .composer-properties .property-button>svg{width:14px;height:14px}
+/* Customer chips share composer styling without changing their list/detail pills. */
+.issue-composer .composer-properties>.customer-assignment-control{flex:none;max-width:190px}
+.issue-composer .composer-properties .customer-assignment-trigger.property-button{color:var(--muted);max-width:190px;vertical-align:middle}
+.issue-composer .composer-properties .customer-assignment-trigger.property-button:hover{color:var(--hover-text)}
 .issue-composer .composer-footer{height:52px;border:0;padding:0 12px;gap:12px}
 .issue-composer .composer-footer>.button{height:28px;border-radius:9999px}
 .issue-composer .composer-attach{width:28px;height:28px;border-radius:50%;background:var(--hover);color:var(--muted)}

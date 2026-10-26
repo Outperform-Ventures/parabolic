@@ -17,12 +17,14 @@ export function SavedViewInlineEditor({
   onSave,
   onAddFilter,
   onDisplayOptions,
+  columnControl,
 }: {
   view: Record<string, any>;
   onCancel: () => void;
   onSave: (draft: SavedViewDraft) => Promise<unknown>;
   onAddFilter: () => void;
   onDisplayOptions: () => void;
+  columnControl?: React.ReactNode;
 }) {
   const [draft, setDraft] = useState<SavedViewDraft>(() => ({
     name: view.name || "",
@@ -39,7 +41,7 @@ export function SavedViewInlineEditor({
       if (event.key !== "Escape" || event.defaultPrevented) return;
       const openOverlay = Array.from(
         document.querySelectorAll<HTMLElement>(
-          ".dropdown-content,[role='dialog'],[role='listbox'],[data-dropdown-escape-layer]",
+          ".dropdown-content,[role='dialog'],[role='listbox'],[data-dropdown-escape-layer],.issue-column-editor",
         ),
       ).some((element) => {
         const style = getComputedStyle(element);
@@ -145,10 +147,11 @@ export function SavedViewInlineEditor({
         </p>
       )}
       <div className="saved-view-inline-tools">
+        {columnControl}
         <button type="button" onClick={onAddFilter}>
           Add filter
         </button>
-        <button type="button" onClick={onDisplayOptions}>
+        <button type="button" data-saved-view-display-trigger onClick={onDisplayOptions}>
           Display options
         </button>
       </div>

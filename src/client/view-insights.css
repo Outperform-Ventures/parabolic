@@ -76,6 +76,7 @@
 .view-insight-table button[aria-pressed="true"] {
   color: var(--accent);
 }
+.view-insight-table button:hover { color: var(--hover-text); }
 .view-insight-table tr[data-highlighted="true"] {
   background: var(--hover);
 }

@@ -54,7 +54,8 @@ type Connection = {
   error?: string | null;
 };
 type Edge = { blocker: Row; blocked: Row; path: string; violated: boolean };
-export function ProjectTimeline({ projects,groups,collapsedGroups=[],onToggleGroup,propertyFields=[],selectedIds,onSelectionChange,onFocusedChange }: { projects: Row[];groups?:{id:string;name:string;projects:Row[]}[];collapsedGroups?:string[];onToggleGroup?:(id:string)=>void;propertyFields?:string[];selectedIds?:string[];onSelectionChange?:React.Dispatch<React.SetStateAction<string[]>>;onFocusedChange?:(id:string|null)=>void }) {
+export type ProjectTimelineSettings = {scale:Scale;start:number;span:number;anchor:number;showList:boolean};
+export function ProjectTimeline({ projects,groups,collapsedGroups=[],onToggleGroup,propertyFields=[],selectedIds,onSelectionChange,onFocusedChange,initialSettings,onSettingsChange }: { projects: Row[];groups?:{id:string;name:string;projects:Row[]}[];collapsedGroups?:string[];onToggleGroup?:(id:string)=>void;propertyFields?:string[];selectedIds?:string[];onSelectionChange?:React.Dispatch<React.SetStateAction<string[]>>;onFocusedChange?:(id:string|null)=>void;initialSettings?:ProjectTimelineSettings;onSettingsChange?:(settings:ProjectTimelineSettings)=>void }) {
   const store = useActions(),
     { data, update, act, toast, reload } = store,
     navigate = useNavigate(),
@@ -97,9 +98,10 @@ export function ProjectTimeline({ projects,groups,collapsedGroups=[],onToggleGro
     allRef = useRef(allProjects);
   allRef.current = allProjects;
   const overlays=useTimelineOverlays({projects,view,onSelectMilestone:()=>setSelected([]),onPan:offset=>{anchorTime.current+=offset;setView(v=>({...v,start:v.start+offset}))}}),overlaysRef=useRef(overlays);overlaysRef.current=overlays;
+  const settingsCallback=useRef(onSettingsChange),settingsReady=useRef(false);settingsCallback.current=onSettingsChange;
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(key) || "{}");
+      const saved = initialSettings || JSON.parse(localStorage.getItem(key) || "{}");
       if (scales.includes(saved.scale)) setScale(saved.scale);
       if (
         Number.isFinite(saved.start) &&
@@ -113,10 +115,12 @@ export function ProjectTimeline({ projects,groups,collapsedGroups=[],onToggleGro
     } catch {}
   }, [key]);
   useEffect(() => {
+    if(!settingsReady.current){settingsReady.current=true;return;}
     localStorage.setItem(
       key,
       JSON.stringify({ ...view, scale, showList, anchor: anchorTime.current }),
     );
+    settingsCallback.current?.({...view,scale,showList,anchor:anchorTime.current});
   }, [key, view, scale, showList]);
   const ticks = useMemo(() => timelineTicks(view), [view]),
     end = view.start + view.span,

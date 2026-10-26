@@ -14,6 +14,7 @@
   color: var(--text);
   background: var(--hover);
 }
+.saved-view-icon-picker .entity-icon-trigger:hover { color: var(--hover-text); }
 
 .dropdown-content.saved-view-details-menu {
   width: 200px;

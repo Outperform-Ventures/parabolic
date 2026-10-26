@@ -4,7 +4,7 @@ import { Building2, Check, Lock, Users } from "lucide-react";
 import { guestCapabilities } from "../shared/guest-capabilities";
 import { Dropdown } from "./components/ui";
 import { EntityIconPicker } from "./features/entity-icon";
-import { IssueList } from "./issues";
+import { IssueList, type IssueViewSettings } from "./issues";
 import { useAppStore } from "./store";
 import type { Entity } from "../shared/types";
 import "./duplicate-issue-view.css";
@@ -35,6 +35,7 @@ export function DuplicateIssueViewPage() {
     color: source?.color || "#26b5ce",
   }));
   const [busy, setBusy] = useState(false);
+  const [previewSettings, setPreviewSettings] = useState<IssueViewSettings | null>(null);
   const capabilities = guestCapabilities(store.data, store.user?.id);
   const destinations = [
     { value: "personal", label: "Personal", icon: Lock },
@@ -79,6 +80,7 @@ export function DuplicateIssueViewPage() {
           },
         display: source?.display ?? {},
         searchQuery: source?.searchQuery ?? "",
+        ...previewSettings,
       });
       navigate(`/view/${created.id}`, { replace: true });
     } catch (error) {
@@ -195,6 +197,7 @@ export function DuplicateIssueViewPage() {
           viewId={source?.id}
           embedded
           filterButtonLabel="Add filter"
+          onViewSettingsChange={setPreviewSettings}
         />
       </div>
     </section>

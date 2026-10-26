@@ -22,7 +22,7 @@ export function availableInsightDimensions(slices:readonly string[],measure:stri
   if(slice==='Milestone'&&!context.project)return false;
   if(context.project&&['Project','Initiative'].includes(slice))return false;
   if(slice==='Team'&&teams.length===1)return false;
-  if(slice==='Customer'&&context.customers===false)return false;
+  if(['Customer','Assigned customer'].includes(slice)&&context.customers===false)return false;
   if(slice==='Estimate'&&teams.length>0&&teams.every(team=>team.estimateScale==='None'))return false;
   if(['Cycle','Added to cycle'].includes(slice)&&teams.length>0&&teams.every(team=>team.cyclesEnabled===false))return false;
   if(slice==='Cycle'&&context.cycle)return false;

@@ -31,7 +31,7 @@ test('Issue, project and timeline scopes disambiguate shared keys', () => {
   assert.equal(resolveShortcut(key('m'), { scope: 'timeline' }).action?.value, 'month');
   assert.equal(resolveShortcut(key('m'), { scope: 'issue' }).pending?.key, 'm');
   assert.deepEqual(resolveShortcut(key('j'), { scope: 'inbox', entity: 'issue' }).action, { command: 'focus-item', value: 'down' });
-  assert.equal(resolveShortcut(key('Backspace'), { scope: 'inbox', entity: 'issue' }).action?.command, 'delete-notification');
+  assert.equal(resolveShortcut(key('Delete'), { scope: 'inbox', entity: 'issue' }).action?.command, 'delete-notification');
   assert.equal(resolveShortcut(key('s', {shiftKey:true}), { scope: 'inbox', entity: 'issue' }).action?.command, 'toggle-subscription');
   assert.equal(resolveShortcut(key('r',{ctrlKey:true}),context).action?.command,'new-customer-request');
   assert.equal(resolveShortcut(key('r',{ctrlKey:true,altKey:true}),{scope:'project',platform:'other'}).action?.command,'new-customer-request');
@@ -91,4 +91,20 @@ test('composition keys never dispatch global actions or preserve shortcut prefix
 
 test('Shift+X extends selection to the active list item without changing input mode',()=>{
  assert.deepEqual(resolveShortcut(key('x',{shiftKey:true}),{scope:'list'}).action,{command:'toggle-selection',value:'extend-current'});
+});
+
+test('Backspace traverses history in every scope without hijacking editing, mod-delete or dialogs',()=>{
+ for(const scope of ['global','list','issue','project','initiative','timeline','inbox'] as const){
+  assert.deepEqual(resolveShortcut(key('Backspace'),{scope}).action,{command:'back'});
+  assert.deepEqual(resolveShortcut(key('Backspace',{shiftKey:true}),{scope}).action,{command:'forward'});
+  for(const typing of ['input','editor'] as const)assert.equal(resolveShortcut(key('Backspace'),{scope,typing}).action,null);
+  assert.equal(resolveShortcut(key('Backspace'),{scope,modalOpen:true}).action,null);
+  assert.equal(resolveShortcut(key('Backspace',{repeat:true}),{scope}).action,null);
+  assert.equal(resolveShortcut(key('Backspace',{isComposing:true}),{scope}).action,null);
+ }
+ assert.equal(resolveShortcut(key('Backspace',{metaKey:true}),{scope:'issue',platform:'mac'}).action?.command,'delete-issue');
+ assert.equal(resolveShortcut(key('Delete'),{scope:'inbox'}).action?.command,'delete-notification');
+ assert.equal(resolveShortcut(key('Delete',{shiftKey:true}),{scope:'inbox'}).action?.command,'delete-read-notifications');
+ assert.equal(resolveShortcut(key('BrowserBack'),{scope:'global'}).action?.command,'back');
+ assert.equal(resolveShortcut(key('BrowserForward'),{scope:'global'}).action?.command,'forward');
 });

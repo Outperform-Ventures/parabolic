@@ -426,7 +426,7 @@ export function SubIssues({ parent }: { parent: Entity }) {
                   )}
                   {shown("Estimate") && child.estimate != null && (
                     <span className="sub-issue-meta">
-                      <Icon name="Diamond" size={12} />
+                      <Icon name="Diamond" size={16} />
                       {child.estimate}
                     </span>
                   )}

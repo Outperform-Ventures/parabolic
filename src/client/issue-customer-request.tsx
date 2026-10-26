@@ -571,7 +571,7 @@ export function IssueCustomerRequest({
                 <button
                   className="issue-request-source"
                   aria-label={source || "Add source"}
-                  title={source || undefined}
+                  data-tooltip-label={source || undefined}
                 >
                   <CustomerRequestSourceIcon />
                   <span>{requestSourceLabel(source)}</span>

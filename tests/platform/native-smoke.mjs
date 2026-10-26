@@ -39,6 +39,29 @@ try {
   await page.getByLabel('Email', { exact: true }).fill('native@example.test'); await page.getByLabel('Password', { exact: true }).fill('Native-test-password-123');
   await page.getByRole('button', { name: 'Create workspace', exact: true }).click(); await page.locator('.workspace-shell.desktop').waitFor();
   await page.waitForURL('**/projects');
+  const sidebarEdge = page.getByRole('separator', { name: 'Resize sidebar' });
+  const sidebarPaint = () => sidebarEdge.evaluate(el => {
+    const style = getComputedStyle(el), after = getComputedStyle(el, '::after');
+    return [style.backgroundColor, style.border, style.outline, style.boxShadow, after.content, after.backgroundColor];
+  });
+  const idleSidebarPaint = await sidebarPaint();
+  const resizeNativeSidebar = async target => {
+    const edge = await sidebarEdge.boundingBox(), width = await page.locator('.sidebar').evaluate(el => el.getBoundingClientRect().width);
+    await page.mouse.move(edge.x + edge.width / 2, edge.y + 100);
+    assert.deepEqual(await sidebarPaint(), idleSidebarPaint, 'Hover must not highlight the sidebar divider');
+    await page.mouse.down();
+    await page.mouse.move(edge.x + edge.width / 2 + target - width, edge.y + 100, { steps: 8 });
+    assert.deepEqual(await sidebarPaint(), idleSidebarPaint, 'Dragging must not highlight the sidebar divider');
+    assert.equal(await sidebarEdge.evaluate(el => getComputedStyle(el).cursor), 'col-resize');
+    await page.mouse.up();
+    assert.deepEqual(await sidebarPaint(), idleSidebarPaint, 'Releasing a drag must not leave a focus highlight');
+  };
+  await resizeNativeSidebar(320);
+  await page.waitForFunction(() => Math.round(document.querySelector('.sidebar').getBoundingClientRect().width) === 320);
+  await resizeNativeSidebar(80);
+  await page.locator('.sidebar').waitFor({ state: 'hidden' });
+  await page.getByRole('button', { name: 'Toggle sidebar', exact: true }).click();
+  await page.waitForFunction(() => Math.round(document.querySelector('.sidebar').getBoundingClientRect().width) === 320);
   const origin = new URL(page.url()).origin;
   const mcp=await page.evaluate(async()=>{
     const resource=await fetch('/.well-known/oauth-protected-resource/mcp').then(response=>response.json());
@@ -49,7 +72,7 @@ try {
     return {resource:resource.resource,pkce:auth.code_challenge_methods_supported,unauthenticated:denied.status,authenticated:granted.status,protocol:result.result?.protocolVersion};
   });
   assert.equal(mcp.resource,`${origin}/mcp`);assert.deepEqual(mcp.pkce,['S256']);assert.equal(mcp.unauthenticated,401);assert.equal(mcp.authenticated,200);assert.equal(mcp.protocol,'2025-11-25');
-  await desktop.evaluate(({Menu})=>Menu.getApplicationMenu().items[0].submenu.items.find(item=>item.label==='Settings…').click());
+  await desktop.evaluate(({Menu})=>Menu.getApplicationMenu().items[0].submenu.items.find(item=>item.label==='Preferences').click());
   await page.getByLabel('Default home view',{exact:true}).selectOption('/projects');
   await page.waitForFunction(async()=>(await fetch('/api/v1/state').then(response=>response.json())).user.preferences.homeView==='/projects');
   await desktop.evaluate(({Menu})=>Menu.getApplicationMenu().items.find(item=>item.label==='History').submenu.items.find(item=>item.label==='Home').click());
@@ -66,12 +89,12 @@ try {
   await page.keyboard.press('Control+Shift+p');await page.locator('.app-tab.pinned').waitFor();
   await page.locator('.sidebar').getByRole('link',{name:'Projects',exact:true}).click();await page.waitForURL('**/projects');
   await page.waitForFunction(expected=>document.querySelectorAll('.app-tab').length===expected,tabCount+2);assert.match(await page.locator('.app-tab.pinned').innerText(),/Inbox/);
-  await nativeMenu('File','Close tab');await page.waitForFunction(expected=>document.querySelectorAll('.app-tab').length===expected,tabCount+1);
+  await nativeMenu('File','Close Tab');await page.waitForFunction(expected=>document.querySelectorAll('.app-tab').length===expected,tabCount+1);
   await page.evaluate(()=>document.activeElement.blur());await nativeMenu('Edit','Undo');await page.waitForFunction(expected=>document.querySelectorAll('.app-tab').length===expected,tabCount+2);
   await nativeMenu('Edit','Redo');await page.waitForFunction(expected=>document.querySelectorAll('.app-tab').length===expected,tabCount+1);
-  await nativeMenu('File','Reopen closed tab');await page.waitForFunction(expected=>document.querySelectorAll('.app-tab').length===expected,tabCount+2);await page.waitForURL('**/projects');
+  await nativeMenu('File','Reopen Closed Tab');await page.waitForFunction(expected=>document.querySelectorAll('.app-tab').length===expected,tabCount+2);await page.waitForURL('**/projects');
   await desktop.evaluate(({ Menu }) => { Menu.getApplicationMenu().items.find(item => item.label === 'View').submenu.items.find(item => item.label === 'Command menu').click(); });
-  await page.getByRole('textbox', { name: 'Command menu' }).waitFor(); await page.keyboard.press('Escape');
+  await page.getByRole('combobox', { name: 'Command menu' }).waitFor(); await page.keyboard.press('Escape');
   await page.screenshot({ path: join(output, 'native-projects.png') });
   await desktop.evaluate(({ Menu }) => { Menu.getApplicationMenu().items.find(item => item.label === 'View').submenu.items.find(item => item.label === 'Find in page').click(); });
   await page.getByRole('textbox', { name: 'Find in page', exact: true }).fill('Projects');
@@ -82,21 +105,26 @@ try {
   await page.evaluate(id=>window.desktop.newTab(`/issues/${id}`),issueId);await page.waitForURL(`**/issues/${issueId}`);
   const editMenu=async label=>desktop.evaluate(({Menu},label)=>Menu.getApplicationMenu().items.find(item=>item.label==='Edit').submenu.items.find(item=>item.label===label).click(),label);
   const waitPriority=async value=>page.waitForFunction(async({id,value})=>(await fetch(`/api/v1/issues/${id}`).then(response=>response.json())).priority===value,{id:issueId,value});
-  await page.locator('.issue-properties-panel').getByRole('button',{name:'Change priority',exact:true}).click();await page.locator('.property-menu').getByRole('button',{name:/Urgent$/}).click();await waitPriority(1);await page.evaluate(()=>document.activeElement.blur());await editMenu('Undo');await waitPriority(0);await editMenu('Redo');await waitPriority(1);
+  await page.locator('.issue-properties-panel').getByRole('button',{name:'Change priority',exact:true}).click();await page.locator('.property-menu').getByRole('option',{name:'Urgent',exact:true}).click();await waitPriority(1);await page.evaluate(()=>document.activeElement.blur());await editMenu('Undo');await waitPriority(0);await editMenu('Redo');await waitPriority(1);
   const nativeEditor=page.locator('.issue-article>.rich-editor .tiptap');await page.waitForFunction(()=>document.querySelector('.issue-article>.rich-editor .tiptap')?.textContent.includes('Editor link text'));await nativeEditor.click();await nativeEditor.press('End');await nativeEditor.pressSequentially(' Native edit');await editMenu('Undo');await page.waitForFunction(()=>!document.querySelector('.issue-article>.rich-editor .tiptap')?.textContent.includes(' Native edit'));await editMenu('Redo');await page.waitForFunction(()=>document.querySelector('.issue-article>.rich-editor .tiptap')?.textContent.includes(' Native edit'));await waitPriority(1);
   await page.locator('.issue-article>.rich-editor .tiptap').click();
   await page.keyboard.press('Meta+k');
-  assert.equal(await page.getByRole('textbox',{name:'Command menu',exact:true}).count(),0);
+  assert.equal(await page.getByRole('combobox',{name:'Command menu',exact:true}).count(),0);
   await page.keyboard.press('Escape');
-  for(const label of ['New issue','New project','New document']){
-    await desktop.evaluate(({Menu},label)=>Menu.getApplicationMenu().items.find(item=>item.label==='File').submenu.items.find(item=>item.label===label).click(),label);
+  for(const label of ['native-create-issue','native-create-project','native-create-document']){
+    await desktop.evaluate(({Menu},label)=>Menu.getApplicationMenu().getMenuItemById(label).click(),label);
     await page.getByRole('dialog').waitFor();await page.keyboard.press('Escape');await page.getByRole('dialog').waitFor({state:'hidden'});
   }
-  const opened=desktop.waitForEvent('window');await desktop.evaluate(({Menu})=>Menu.getApplicationMenu().items.find(item=>item.label==='File').submenu.items.find(item=>item.label==='New window').click());const extraWindow=await opened;await extraWindow.waitForLoadState('domcontentloaded');assert.equal(await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().length),2);
+  const opened=desktop.waitForEvent('window');await desktop.evaluate(({Menu})=>Menu.getApplicationMenu().items.find(item=>item.label==='File').submenu.items.find(item=>item.label==='New Window').click());const extraWindow=await opened;await extraWindow.waitForLoadState('domcontentloaded');assert.equal(await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().length),2);
   // Exercise both renderer bridges while suppressing delivery to the user's OS.
-  assert.equal(await desktop.evaluate(({Notification})=>{globalThis.__nativeNotificationShows=0;globalThis.__nativeNotificationShow=Notification.prototype.show;Notification.prototype.show=function(){globalThis.__nativeNotificationShows++};return Notification.isSupported();}),true);
+  assert.equal(await desktop.evaluate(({Notification})=>{globalThis.__nativeNotificationShows=0;globalThis.__nativeNotificationShow=Notification.prototype.show;Notification.prototype.show=function(){globalThis.__nativeNotificationShows++;this.emit('show');};return Notification.isSupported();}),true);
   try{const details={title:'Native deduplication check',body:'Test delivery',tag:'native-test:workspace:user:notification'};assert.equal(await page.evaluate(details=>window.desktop.notify(details),details),true);assert.equal(await extraWindow.evaluate(details=>window.desktop.notify(details),details),false);assert.equal(await desktop.evaluate(()=>globalThis.__nativeNotificationShows),1);}finally{await desktop.evaluate(({Notification})=>{Notification.prototype.show=globalThis.__nativeNotificationShow;delete globalThis.__nativeNotificationShow;delete globalThis.__nativeNotificationShows;});}
   await extraWindow.close();
+  // Leave the creation-dialog smoke checks on a stable issue route before
+  // testing session restoration and a new startup deep link.
+  await page.evaluate(id=>window.desktop.newTab(`/issues/${id}`),issueId);
+  await page.waitForURL(`**/issues/${issueId}`);
+  await page.locator('.issue-properties-panel').waitFor();
   await page.evaluate(() => { localStorage.setItem('native-restart-sentinel', 'persisted'); return window.desktop.setTheme('dark'); });
   const dbState = await page.evaluate(async () => { const state = await fetch('/api/v1/state').then(response => response.json()); return { user: state.user.name, teams: state.teams.length, workspaceId: state.workspaceId }; });
   assert.equal(dbState.user, 'Native Test'); assert.ok(dbState.teams > 0);
@@ -106,6 +134,7 @@ try {
   await page.locator('.workspace-shell.desktop').waitFor(); assert.equal(new URL(page.url()).origin, origin);
   await page.waitForURL(`**/issues/${issueId}?focus=comments`);
   assert.equal(await page.evaluate(() => localStorage.getItem('native-restart-sentinel')), 'persisted');
+  await page.waitForFunction(() => Math.round(document.querySelector('.sidebar').getBoundingClientRect().width) === 320);
   assert.equal((await page.evaluate(() => fetch('/api/v1/state').then(response => response.json()))).user.name, 'Native Test');
   // Leave the local cache intact while invalidating only the server session.
   // Startup intents must wait through cached rendering and the subsequent login gate.
@@ -115,19 +144,21 @@ try {
   assert.notEqual(new URL(page.url()).searchParams.get('source'),'startup');
   await page.getByLabel('Email',{exact:true}).fill('native@example.test');await page.getByLabel('Password',{exact:true}).fill('Native-test-password-123');await page.getByRole('button',{name:'Continue with email',exact:true}).click();
   await page.waitForURL('**/projects?source=startup');await page.locator('.workspace-shell.desktop').waitFor();
-  // Relaunch is driven explicitly by Playwright so the replacement app remains attached to this test.
-  await desktop.evaluate(({Menu})=>Menu.getApplicationMenu().items[0].submenu.items.find(item=>item.label==='Settings…').click());await page.getByLabel('Server address').fill('http://example.com');await page.getByRole('button',{name:'Restart and connect'}).click();await page.getByRole('alert').filter({hasText:'HTTPS'}).waitFor();
-  await page.getByLabel('Server address').fill(remoteUrl);await page.screenshot({path:join(output,'native-connection-settings.png')});
-  await desktop.evaluate(({app})=>{app.relaunch=()=>{};});let closed=desktop.waitForEvent('close');await page.getByRole('button',{name:'Restart and connect'}).click();await closed;desktop=undefined;
+  // Connection switching is exposed by the native bridge, not the current
+  // Preferences UI. Keep the restart attached to this isolated test process.
+  await desktop.evaluate(({Menu})=>Menu.getApplicationMenu().items[0].submenu.items.find(item=>item.label==='Preferences').click());
+  await page.getByLabel('Default home view',{exact:true}).waitFor();
+  await page.screenshot({path:join(output,'native-connection-settings.png')});
+  await desktop.evaluate(({app})=>{app.relaunch=()=>{};});let closed=desktop.waitForEvent('close');await page.evaluate(url=>window.desktop.setConnection(url),remoteUrl);await closed;desktop=undefined;
   assert.equal(JSON.parse(await readFile(join(userData,'connection.json'),'utf8')).serverUrl,remoteUrl);
   run=await launch();desktop=run.instance;page=run.page;await page.getByRole('heading',{name:'Create your workspace'}).waitFor();assert.equal(new URL(page.url()).origin,remoteUrl);assert.equal((await page.evaluate(()=>window.desktop.getConnection())).mode,'remote');assert.equal(await desktop.evaluate(({app})=>app.getAppMetrics().some(row=>row.name==='Parabolic Workspace Service')),false);
   await page.getByLabel('Full name').fill('Remote Native');await page.getByLabel('Workspace name').fill('Shared verification');await page.getByLabel('Email',{exact:true}).fill('remote-native@example.test');await page.getByLabel('Password',{exact:true}).fill('Remote-native-password');await page.getByRole('button',{name:'Create workspace',exact:true}).click();await page.locator('.workspace-shell.desktop').waitFor();
-  await desktop.evaluate(({Menu})=>Menu.getApplicationMenu().items[0].submenu.items.find(item=>item.label==='Settings…').click());await page.getByLabel('Server address').fill('');
-  await desktop.evaluate(({app})=>{app.relaunch=()=>{};});closed=desktop.waitForEvent('close');await page.getByRole('button',{name:'Restart and connect'}).click();await closed;desktop=undefined;
+  await desktop.evaluate(({app})=>{app.relaunch=()=>{};});closed=desktop.waitForEvent('close');await page.evaluate(()=>window.desktop.setConnection(null));await closed;desktop=undefined;
   run=await launch();desktop=run.instance;page=run.page;await page.locator('.workspace-shell.desktop').waitFor();assert.equal(new URL(page.url()).origin,origin);assert.equal((await page.evaluate(()=>fetch('/api/v1/state').then(response=>response.json()))).user.name,'Native Test');
   assert.deepEqual(errors, []);
   const build={checkedAt:new Date().toISOString(),executablePath,asarSha256:createHash('sha256').update(await readFile(security.appPath)).digest('hex'),rendererSha256:createHash('sha256').update(await readFile(resolve('dist/index.html'))).digest('hex')};
-  const report = { result: 'passed', checks: ['Packaged macOS arm64 launch', 'Queued startup deep links survive fresh login, expired cached sessions, and authenticated restart', 'Bundled SQLite service', 'Packaged MCP discovery and scoped authentication', 'Sandbox and context isolation', 'No renderer Node globals', 'IPC URL and route validation', 'Account setup and authenticated state', 'Native menu command dispatch', 'Native Home uses the saved home-view preference', 'Renderer tab IPC', 'Native Back and Forward preserve independent tab histories', 'Native pin navigation preserves content and closed tabs restore through Undo, Redo, and Reopen', 'Native find-in-page returns document matches', 'Native workspace Undo and Redo restore persisted issue properties','Native editor Undo and Redo preserve separate rich-text history','Native Cmd+K preserves rich-editor focus','Native issue/project/document creation menus open working dialogs','Native new-window menu creates an independent window', 'Native tagged notifications deduplicate across windows', 'Stable origin and persisted local storage after restart', 'Session cookie and SQLite data after restart','Settings form validates and persists a central server across restart','Settings form restores embedded workspace and login'], build,security, bridge,mcp,windowDomReadyMs:launchTimings, screenshots: ['native-projects.png','native-connection-settings.png'], errors };
+  const report = { result: 'passed', checks: ['Packaged macOS arm64 launch', 'Queued startup deep links survive fresh login, expired cached sessions, and authenticated restart', 'Bundled SQLite service', 'Packaged MCP discovery and scoped authentication', 'Sandbox and context isolation', 'No renderer Node globals', 'IPC URL and route validation', 'Account setup and authenticated state', 'Native menu command dispatch', 'Native Home uses the saved home-view preference', 'Renderer tab IPC', 'Native Back and Forward preserve independent tab histories', 'Native pin navigation preserves content and closed tabs restore through Undo, Redo, and Reopen', 'Native find-in-page returns document matches', 'Native workspace Undo and Redo restore persisted issue properties','Native editor Undo and Redo preserve separate rich-text history','Native Cmd+K preserves rich-editor focus','Native issue/project/document creation menus open working dialogs','Native new-window menu creates an independent window', 'Native tagged notifications deduplicate across windows', 'Stable origin and persisted local storage after restart', 'Session cookie and SQLite data after restart','Native connection bridge persists a central server across restart','Native connection bridge restores embedded workspace and login'], build,security, bridge,mcp,windowDomReadyMs:launchTimings, screenshots: ['native-projects.png','native-connection-settings.png'], errors };
+  report.checks.push('Native sidebar drag-resize and collapse preserve the preferred width through toolbar restore and app restart');
   await writeFile(join(output, 'native-smoke.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify({ result: 'passed', checks: report.checks.length, output }));
 } catch(error) {const page=desktop?.windows()[0];if(page)await page.screenshot({path:join(output,'native-failure.png')}).catch(()=>{});await writeFile(join(output,'native-smoke.json'),JSON.stringify({result:'failed',error:String(error),errors},null,2));throw error;} finally { await desktop?.close(); await remote.close();await rm(userData, { recursive: true, force: true }); }

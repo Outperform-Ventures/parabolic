@@ -251,7 +251,7 @@ test("priority inbox supports search, embedded issue edits, snooze and keyboard 
       .getByRole("textbox", { name: "Search notifications", exact: true })
       .press("Escape");
     await page.locator(`[data-notification-id="${other.id}"]`).click();
-    await page.keyboard.press("Backspace");
+    await page.keyboard.press("Delete");
     await page
       .getByRole("button", { name: "Delete notifications", exact: true })
       .click();
