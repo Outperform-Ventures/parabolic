@@ -168,7 +168,7 @@ Issue relations are reciprocal. `relations` uses `related`, `blocks` and `blocke
 
 Initiatives support multiple parents, acyclic depth of five, deduplicated descendant project rollups, priority and a lead team. Root ordering uses finite `position`; independent parent ordering uses `parentPositions: {parentId: number}` with magnitudes up to 1e15. Patching the map preserves other parent positions and removing a parent prunes its position. Saved views support `entityType:"initiatives"` and optional `initiativeId` context with the same parent access checks as the initiative. Customer domains normalize case and URL spelling; merging customers atomically replaces customer references without revealing hidden content. Issue/project customer metrics derive from authorized linked requests and deduplicated customers. Project and initiative update reminders use the owner’s time zone and publish/nudge idempotency.
 
-The service runs as one SQLite-backed process per database. It does not implement clustered workers or SMTP delivery. SAML/SCIM, external provider connections and hosted AI remain outside this build's accepted scope.
+The service runs as one SQLite-backed process per database. It does not implement clustered workers. Optional SMTP delivery is provided by the mail worker when configured; see the root environment inventory. SAML/SCIM, external provider connections and hosted AI remain outside this build's accepted scope.
 
 ## Configuration and verification
 

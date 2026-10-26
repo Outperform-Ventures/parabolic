@@ -1,11 +1,12 @@
 FROM node:24-bookworm-slim AS build
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 WORKDIR /app
-RUN npm install --global pnpm@11.19.0
+RUN npm install --global pnpm@10.33.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/sdk/package.json packages/sdk/package.json
 RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY src src
+COPY public public
 COPY packages/sdk packages/sdk
 COPY scripts/build-server.mjs scripts/build-desktop.mjs scripts/
 COPY index.html vite.config.ts tsconfig.json ./

@@ -8,11 +8,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jkuechly/Parabolic.git"
+    "url": "git+https://github.com/Outperform-Ventures/parabolic.git"
   },
-  "homepage": "https://github.com/jkuechly/Parabolic#readme",
+  "homepage": "https://github.com/Outperform-Ventures/parabolic#readme",
   "bugs": {
-    "url": "https://github.com/jkuechly/Parabolic/issues"
+    "url": "https://github.com/Outperform-Ventures/parabolic/issues"
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",

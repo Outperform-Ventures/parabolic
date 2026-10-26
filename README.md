@@ -1,59 +1,71 @@
 # Parabolic
 
-## Open Source Linear
+An open-source workspace for issues, projects, documents and product planning, with a shared React interface for macOS and the web. The Electron application includes a local Node/SQLite service; the same service can be self-hosted for a shared workspace. Licensed under [MIT](LICENSE).
 
-Parabolic is an open-source Linear-style workspace for issues, projects, and product planning. It brings a fast, keyboard-first experience to both macOS and the web, with the complete React interface, Electron desktop shell, and persistent Node/SQLite service available in this repository.
+Parabolic is independent and is not affiliated with or endorsed by Linear or the integration brands shown in the interface. Integration branding is not evidence of an implemented provider connection.
 
-Parabolic is an independent open-source project and is not affiliated with or endorsed by Linear.
+## Documentation
 
-## Download for macOS
+| Document | Purpose |
+| --- | --- |
+| [Architecture](ARCHITECTURE.md) | Renderer, desktop processes, service, persistence, sync, SDK/MCP and boundaries. |
+| [Build/deploy/release runbook](DEPLOY_RUNBOOK.md) | Validation, Mac packaging, optional shared hosting, backups and rollback. |
+| [Environment and secrets](ENV_AND_SECRETS.md) | Application/development settings and where per-installation credentials live. |
+| [Agent instructions](AGENTS.md) | Safe development, data isolation and verification rules. |
+| [Service API](src/server/README.md) / [SDK](packages/sdk/README.md) | HTTP/domain reference and typed client. |
 
-- [Apple Silicon (M1 or newer)](https://github.com/jkuechly/Parabolic/releases/latest/download/Parabolic-0.1.0-Apple-Silicon.zip)
-- [Intel Mac](https://github.com/jkuechly/Parabolic/releases/latest/download/Parabolic-0.1.0-Intel.zip)
+## Run from source
 
-Unzip the download, drag `Parabolic.app` into `/Applications`, then Control-click the app and choose **Open** for its first launch. These community builds are ad-hoc signed but not Apple-notarized, so double-clicking the app the first time may be blocked by Gatekeeper.
-
-## Run
-
-The packaged Mac app stores its database in `~/Library/Application Support/Parabolic/`. No default account or password is supplied. Create the first workspace through the login screen.
-
-Development requires Node 24.4+ and pnpm 10:
+Requires **Node 24.4+** (Node's SQLite API) and **pnpm 10.33.0**, as declared in `package.json`.
 
 ```sh
+git clone https://github.com/Outperform-Ventures/parabolic.git
+cd parabolic
 pnpm install --frozen-lockfile
-pnpm dev
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
-Open `http://127.0.0.1:4173`. Vite serves the renderer and proxies the persistent service on port 4174. Development data lives under `.data/`, separately from the packaged app.
+For web development, check that ports **4173/4174** are free, then run `pnpm dev`. Vite serves the renderer on loopback port 4173 and proxies the API on 4174. Data is local under `.data/` by default. First run asks you to create an account/workspace; there is no default account or password.
+
+For the local production web build, `pnpm start` serves the compiled UI and API on loopback port 4174. See the runbook before exposing it to a network.
+
+## Desktop development and packaging
+
+After building, start an isolated desktop profile:
 
 ```sh
-pnpm build
-pnpm start                 # Production web app on port 4174
-pnpm desktop               # Desktop shell from the local build
-pnpm package:mac           # macOS arm64 application
-pnpm typecheck
-pnpm test                  # Domain, API, SDK, MCP and platform tests
-pnpm exec playwright test --workers=1  # Browser workflows; requires a build
+PARABOLIC_USER_DATA="$PWD/.local/desktop-profile" pnpm desktop
 ```
 
-See [deployment.md](docs/deployment.md) for a shared service and durable storage. The default embedded database is local to one Mac; a central service shares a workspace across devices.
+Do not omit isolation when an installed Parabolic app already contains data. The embedded service keeps SQLite work in an Electron utility process and uses a loopback origin.
 
-## Product and platform
+`pnpm package:mac` builds an Apple Silicon app under `release/mac-arm64/Parabolic.app`. With no update feed configured, this is an **ad-hoc development build**, not a Developer ID-signed or notarized public release. This OPV repository does not yet publish installers or operate an update feed; there are no fabricated download links here. Follow the [release runbook](DEPLOY_RUNBOOK.md) before distributing binaries.
 
-The React renderer shares routes and workflows between web and Electron. The Node service uses SQLite WAL, validated REST and GraphQL APIs, scoped authentication, signed webhooks, synchronization, and background scheduling. The client uses optimistic changes, a durable IndexedDB outbox, progressive synchronization, conflict review, and virtualized issue lists.
+The advanced `pnpm dev:desktop` launcher can copy an existing installed workspace into an isolated development directory. It removes copied login sessions, but the copied records are still private. Use it only when deliberately testing with that data; it is not a clean first-run command.
 
-- [Service and HTTP API](src/server/README.md)
-- [Typed SDK](packages/sdk/README.md)
-- [MCP access](docs/mcp.md)
-- [macOS architecture](docs/desktop.md)
-- [Platform validation](docs/platform-validation.md) and [native parity checklist](docs/native-parity-checklist.md)
-- [Current section-by-section visual comparison](docs/visual-parity.md)
-- [100,000-issue browser measurements](artifacts/performance/ui-100000.json) and [10,000-issue measurements](artifacts/performance/ui-10000.json)
+## What's included
 
-The scope includes issues, properties and relationships, rich documents and comments, views, inbox, triage and SLAs, cycles, projects and timelines, initiatives and updates, insights and dashboards, customers and forms, administration, basic authentication, API/SDK/webhooks, OAuth, MCP, and deep links.
+- Issues, projects, documents, views, planning, customer records, collaboration and administration.
+- Persistent SQLite service with REST/GraphQL, scoped authentication, SSE and Yjs collaboration.
+- Durable client-side offline queue and conflict handling.
+- Electron windows, native menus, deep links and managed embedded-service lifecycle.
+- Typed SDK and credential-scoped MCP access.
+- Optional SMTP delivery when configured by a self-hosting operator.
 
-It excludes Pulse, hosted AI and coding workflows, billing/plans/legal surfaces, imports/exports/migration, onboarding/adoption guidance, methodology UI, and releases. Integrations have provider scaffolding only. Connector-dependent Slack/email intake and external sync are deferred. Local coding scripts fall under the coding exclusion; prefilled issue links remain included.
+Feature breadth is not a claim of complete functional/visual parity with another product. SAML/SCIM, hosted AI, billing, many external provider connections and an operated release service are not supplied by this repository.
 
-## License
+## CI and deployment
 
-Parabolic is available under the [MIT License](LICENSE). Bundled Inter font files remain under the SIL Open Font License included alongside them. Product and integration names and logos may be trademarks of their respective owners.
+GitHub CI validates fresh source on Linux and macOS. It does not install over a user's app, connect to a production workspace, send email, publish an installer or deploy a server. Shared hosting and signed desktop distribution are separate operator choices documented in the runbook. There is no configured Fly application for this repository.
+
+## Data and security
+
+Installed macOS data normally lives under `~/Library/Application Support/Parabolic/`. Treat its database, browser partitions, cookies, drafts and backups as private. Source publication never includes those records. See the inventory before configuring SMTP, MCP or an update feed.
+
+Back up SQLite consistently, including committed WAL data, and preserve profile/offline data when relevant. A code rollback does not reverse schema/data changes. Report suspected vulnerabilities privately to the repository maintainers; do not post tokens, workspace exports or account records in public issues.
+
+## License and assets
+
+Application source is MIT-licensed; retain [LICENSE](LICENSE). Bundled Inter font files retain their SIL Open Font License in `src/client/fonts/LICENSE.txt` and `public/licenses/inter.txt`. Berkeley Mono and personal avatars are not redistributed. Third-party dependencies retain their licenses; product/integration names and logos may be their owners' trademarks.
