@@ -11,7 +11,7 @@ COPY packages/sdk packages/sdk
 COPY scripts/build-server.mjs scripts/build-desktop.mjs scripts/offline-plugin.ts scripts/
 COPY index.html vite.config.ts tsconfig.json ./
 RUN pnpm build
-RUN pnpm prune --prod --ignore-scripts
+RUN CI=true pnpm prune --prod --ignore-scripts
 
 FROM node:24-bookworm-slim
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=4174 PARABOLIC_DATABASE=/data/workspace.sqlite PARABOLIC_STATIC_DIR=/app/dist
